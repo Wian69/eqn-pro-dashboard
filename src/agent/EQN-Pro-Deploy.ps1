@@ -14,7 +14,7 @@ $TargetDir = "C:\ProgramData\EQNProAgent"
 $ScriptName = "agent-engine.ps1"
 $TargetPath = Join-Path $TargetDir $ScriptName
 $LogFile = Join-Path $TargetDir "agent.log"
-$serverUrl = "http://localhost:3000/api/agent" # Update this to your production URL
+$serverUrl = "https://eqn-pro-dashboard.vercel.app/api/agent" # Update this to your production URL
 $baseUrl = $serverUrl.Replace("/api/agent", "")
 $deviceId = (Get-CimInstance Win32_BIOS).SerialNumber
 
