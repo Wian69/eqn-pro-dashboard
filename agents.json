@@ -1,0 +1,1026 @@
+{
+  "79HVW14": {
+    "deviceId": "79HVW14",
+    "hostname": "EQNCSLT016",
+    "cpuUsage": 45,
+    "ramUsage": 83.9,
+    "hddTotal": 474,
+    "hddFree": 81.9,
+    "publicIp": "169.0.122.36",
+    "localIp": "192.168.3.3",
+    "vpnStatus": "Offline",
+    "location": "Cape Town, Western Cape, South Africa",
+    "coords": "-33.914, 18.4129",
+    "lastSeen": "2026-03-11T12:05:26Z",
+    "status": "online",
+    "commands": [
+      {
+        "id": "fwhrvx3ss",
+        "command": "runScript",
+        "params": {
+          "code": "$wshell = New-Object -ComObject WScript.Shell; $wshell.Popup(\"Hello test\", 0, \"EQN Pro Message\", 64)"
+        },
+        "status": "completed",
+        "timestamp": "2026-03-11T07:14:27.517Z",
+        "output": "1\r\n",
+        "error": null,
+        "completedAt": "2026-03-11T07:14:38.311Z"
+      },
+      {
+        "id": "0b965mw7u",
+        "command": "runScript",
+        "params": {
+          "code": "$wshell = New-Object -ComObject WScript.Shell; $wshell.Popup(\"hello test\n\", 0, \"EQN Pro Message\", 64)"
+        },
+        "status": "completed",
+        "timestamp": "2026-03-11T07:14:56.783Z",
+        "output": "1\r\n",
+        "error": null,
+        "completedAt": "2026-03-11T07:15:09.622Z"
+      },
+      {
+        "id": "sev6hw885",
+        "command": "runScript",
+        "params": {
+          "code": "$wshell = New-Object -ComObject WScript.Shell; $wshell.Popup(\"test3\", 0, \"EQN Pro Message\", 64)"
+        },
+        "status": "completed",
+        "timestamp": "2026-03-11T07:16:55.017Z",
+        "output": "1\r\n",
+        "error": null,
+        "completedAt": "2026-03-11T07:17:03.463Z"
+      },
+      {
+        "id": "qxcov2diz",
+        "command": "runScript",
+        "params": {
+          "code": "Add-Type -AssemblyName PresentationFramework;\n$logo = 'C:\\ProgramData\\EQNProAgent\\logo.png';\n$xaml = @'\n<Window xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\" Title=\"IT Alert\" Height=\"380\" Width=\"480\" WindowStyle=\"None\" AllowsTransparency=\"True\" Background=\"Transparent\" WindowStartupLocation=\"CenterScreen\" Topmost=\"True\">\n    <Border Background=\"#121212\" CornerRadius=\"16\" BorderBrush=\"#005a9c\" BorderThickness=\"2\">\n        <Grid Margin=\"25\">\n            <Grid.RowDefinitions><RowDefinition Height=\"Auto\"/><RowDefinition Height=\"*\"/><RowDefinition Height=\"Auto\"/></Grid.RowDefinitions>\n            <Image Grid.Row=\"0\" Source=\"$logo\" Height=\"60\" Margin=\"0,0,0,20\" Stretch=\"Uniform\"/>\n            <TextBlock Grid.Row=\"1\" Text=\"hello\" Foreground=\"White\" FontSize=\"18\" TextWrapping=\"Wrap\" TextAlignment=\"Center\" VerticalAlignment=\"Center\" FontWeight=\"SemiBold\"/>\n            <StackPanel Grid.Row=\"2\" Margin=\"0,20,0,0\">\n                <TextBlock Text=\"Sent by Equinox IT Support • Security Verified\" Foreground=\"#666\" FontSize=\"10\" HorizontalAlignment=\"Center\" Margin=\"0,0,0,15\"/>\n                <Button Name=\"btn\" Content=\"Acknowledge\" Height=\"36\" Width=\"140\" Background=\"#005a9c\" Foreground=\"White\" BorderThickness=\"0\" FontSize=\"14\" FontWeight=\"Bold\">\n                    <Button.Resources>\n                        <Style TargetType=\"Border\"><Setter Property=\"CornerRadius\" Value=\"18\"/></Style>\n                    </Button.Resources>\n                </Button>\n            </StackPanel>\n        </Grid>\n    </Border>\n</Window>\n'@;\nif (Test-Path $logo) { $xaml = $xaml.Replace('$logo', $logo) }\n$window = [Windows.Markup.XamlReader]::Load([System.Xml.XmlReader]::Create([System.IO.StringReader]::new($xaml)));\n$window.FindName('btn').Add_Click({$window.Close()});\n$window.Topmost = $true;\n$window.ShowDialog();"
+        },
+        "status": "completed",
+        "timestamp": "2026-03-11T07:24:22.022Z",
+        "output": "False\r\n",
+        "error": null,
+        "completedAt": "2026-03-11T07:24:53.123Z"
+      },
+      {
+        "id": "ti2uusmu7",
+        "command": "runScript",
+        "params": {
+          "code": "Add-Type -AssemblyName PresentationFramework;\n$logo = 'C:\\ProgramData\\EQNProAgent\\logo.png';\n$xaml = @'\n<Window xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\" Title=\"IT Alert\" Height=\"380\" Width=\"480\" WindowStyle=\"None\" AllowsTransparency=\"True\" Background=\"Transparent\" WindowStartupLocation=\"CenterScreen\" Topmost=\"True\">\n    <Border Background=\"#121212\" CornerRadius=\"16\" BorderBrush=\"#005a9c\" BorderThickness=\"2\">\n        <Grid Margin=\"25\">\n            <Grid.RowDefinitions><RowDefinition Height=\"Auto\"/><RowDefinition Height=\"*\"/><RowDefinition Height=\"Auto\"/></Grid.RowDefinitions>\n            <Image Grid.Row=\"0\" Source=\"$logo\" Height=\"60\" Margin=\"0,0,0,20\" Stretch=\"Uniform\"/>\n            <TextBlock Grid.Row=\"1\" Text=\"Hello\" Foreground=\"White\" FontSize=\"18\" TextWrapping=\"Wrap\" TextAlignment=\"Center\" VerticalAlignment=\"Center\" FontWeight=\"SemiBold\"/>\n            <StackPanel Grid.Row=\"2\" Margin=\"0,20,0,0\">\n                <TextBlock Text=\"Sent by Equinox IT Support • Security Verified\" Foreground=\"#666\" FontSize=\"10\" HorizontalAlignment=\"Center\" Margin=\"0,0,0,15\"/>\n                <Button Name=\"btn\" Content=\"Acknowledge\" Height=\"36\" Width=\"140\" Background=\"#005a9c\" Foreground=\"White\" BorderThickness=\"0\" FontSize=\"14\" FontWeight=\"Bold\">\n                    <Button.Resources>\n                        <Style TargetType=\"Border\"><Setter Property=\"CornerRadius\" Value=\"18\"/></Style>\n                    </Button.Resources>\n                </Button>\n            </StackPanel>\n        </Grid>\n    </Border>\n</Window>\n'@;\nif (Test-Path $logo) { $xaml = $xaml.Replace('$logo', $logo) }\n$window = [Windows.Markup.XamlReader]::Load([System.Xml.XmlReader]::Create([System.IO.StringReader]::new($xaml)));\n$window.FindName('btn').Add_Click({$window.Close()});\n$window.Topmost = $true;\n$window.ShowDialog();"
+        },
+        "status": "completed",
+        "timestamp": "2026-03-11T07:25:02.104Z",
+        "output": "False\r\n",
+        "error": null,
+        "completedAt": "2026-03-11T07:25:08.713Z"
+      },
+      {
+        "id": "s8rg10ueb",
+        "command": "runScript",
+        "params": {
+          "code": "Add-Type -AssemblyName PresentationFramework;\n$logoPath = 'C:/ProgramData/EQNProAgent/logo.png';\n$logoUri = \"file:///$logoPath\";\n$xaml = @'\n<Window xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\" Title=\"IT Alert\" Height=\"380\" Width=\"480\" WindowStyle=\"None\" AllowsTransparency=\"True\" Background=\"Transparent\" WindowStartupLocation=\"CenterScreen\" Topmost=\"True\">\n    <Border Background=\"#121212\" CornerRadius=\"16\" BorderBrush=\"#005a9c\" BorderThickness=\"2\">\n        <Grid Margin=\"25\">\n            <Grid.RowDefinitions><RowDefinition Height=\"Auto\"/><RowDefinition Height=\"*\"/><RowDefinition Height=\"Auto\"/></Grid.RowDefinitions>\n            <Image Grid.Row=\"0\" Source=\"$logo\" Height=\"60\" Margin=\"0,0,0,20\" Stretch=\"Uniform\"/>\n            <TextBlock Grid.Row=\"1\" Text=\"hello\n\" Foreground=\"White\" FontSize=\"18\" TextWrapping=\"Wrap\" TextAlignment=\"Center\" VerticalAlignment=\"Center\" FontWeight=\"SemiBold\"/>\n            <StackPanel Grid.Row=\"2\" Margin=\"0,20,0,0\">\n                <TextBlock Text=\"Sent by Equinox IT Support • Security Verified\" Foreground=\"#666\" FontSize=\"10\" HorizontalAlignment=\"Center\" Margin=\"0,0,0,15\"/>\n                <Button Name=\"btn\" Content=\"Acknowledge\" Height=\"36\" Width=\"140\" Background=\"#005a9c\" Foreground=\"White\" BorderThickness=\"0\" FontSize=\"14\" FontWeight=\"Bold\">\n                    <Button.Resources>\n                        <Style TargetType=\"Border\"><Setter Property=\"CornerRadius\" Value=\"18\"/></Style>\n                    </Button.Resources>\n                </Button>\n            </StackPanel>\n        </Grid>\n    </Border>\n</Window>\n'@;\nif (Test-Path $logoPath) { $xaml = $xaml.Replace('$logo', $logoUri) }\n$window = [Windows.Markup.XamlReader]::Load([System.Xml.XmlReader]::Create([System.IO.StringReader]::new($xaml)));\n$window.FindName('btn').Add_Click({$window.Close()});\n$window.Topmost = $true;\n$window.ShowDialog();"
+        },
+        "status": "completed",
+        "timestamp": "2026-03-11T07:28:53.580Z",
+        "output": "False\r\n",
+        "error": null,
+        "completedAt": "2026-03-11T07:29:14.690Z"
+      },
+      {
+        "id": "yupw4dn6r",
+        "command": "sync",
+        "params": {
+          "newName": ""
+        },
+        "status": "completed",
+        "timestamp": "2026-03-11T07:33:14.762Z",
+        "output": "Intune/MDM Sync Triggered successfully.",
+        "error": null,
+        "completedAt": "2026-03-11T09:26:31.920Z"
+      },
+      {
+        "id": "ddreer8tl",
+        "command": "runScript",
+        "params": {
+          "code": "Add-Type -AssemblyName PresentationFramework;\n$logoPath = 'C:/ProgramData/EQNProAgent/logo.png';\n$logoUri = \"file:///$logoPath\";\n$xaml = @'\n<Window xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\" Title=\"IT Alert\" Height=\"380\" Width=\"480\" WindowStyle=\"None\" AllowsTransparency=\"True\" Background=\"Transparent\" WindowStartupLocation=\"CenterScreen\" Topmost=\"True\">\n    <Border Background=\"#121212\" CornerRadius=\"16\" BorderBrush=\"#005a9c\" BorderThickness=\"2\">\n        <Grid Margin=\"25\">\n            <Grid.RowDefinitions><RowDefinition Height=\"Auto\"/><RowDefinition Height=\"*\"/><RowDefinition Height=\"Auto\"/></Grid.RowDefinitions>\n            <Image Grid.Row=\"0\" Source=\"$logo\" Height=\"60\" Margin=\"0,0,0,20\" Stretch=\"Uniform\"/>\n            <TextBlock Grid.Row=\"1\" Text=\"Hello\" Foreground=\"White\" FontSize=\"18\" TextWrapping=\"Wrap\" TextAlignment=\"Center\" VerticalAlignment=\"Center\" FontWeight=\"SemiBold\"/>\n            <StackPanel Grid.Row=\"2\" Margin=\"0,20,0,0\">\n                <TextBlock Text=\"Sent by Equinox IT Support • Security Verified\" Foreground=\"#666\" FontSize=\"10\" HorizontalAlignment=\"Center\" Margin=\"0,0,0,15\"/>\n                <Button Name=\"btn\" Content=\"Acknowledge\" Height=\"36\" Width=\"140\" Background=\"#005a9c\" Foreground=\"White\" BorderThickness=\"0\" FontSize=\"14\" FontWeight=\"Bold\">\n                    <Button.Resources>\n                        <Style TargetType=\"Border\"><Setter Property=\"CornerRadius\" Value=\"18\"/></Style>\n                    </Button.Resources>\n                </Button>\n            </StackPanel>\n        </Grid>\n    </Border>\n</Window>\n'@;\nif (Test-Path $logoPath) { $xaml = $xaml.Replace('$logo', $logoUri) }\n$window = [Windows.Markup.XamlReader]::Load([System.Xml.XmlReader]::Create([System.IO.StringReader]::new($xaml)));\n$window.FindName('btn').Add_Click({$window.Close()});\n$window.Topmost = $true;\n$window.ShowDialog();"
+        },
+        "status": "completed",
+        "timestamp": "2026-03-11T08:00:50.565Z",
+        "output": "False\r\n",
+        "error": null,
+        "completedAt": "2026-03-11T08:01:03.580Z"
+      },
+      {
+        "id": "rjas4cgw1",
+        "command": "runScript",
+        "params": {
+          "code": "Add-Type -AssemblyName PresentationFramework;\n$logoPath = 'C:/ProgramData/EQNProAgent/logo.png';\n$logoUri = \"file:///$logoPath\";\n$xaml = @'\n<Window xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\" Title=\"IT Alert\" Height=\"380\" Width=\"480\" WindowStyle=\"None\" AllowsTransparency=\"True\" Background=\"Transparent\" WindowStartupLocation=\"CenterScreen\" Topmost=\"True\">\n    <Border Background=\"#121212\" CornerRadius=\"16\" BorderBrush=\"#005a9c\" BorderThickness=\"2\">\n        <Grid Margin=\"25\">\n            <Grid.RowDefinitions><RowDefinition Height=\"Auto\"/><RowDefinition Height=\"*\"/><RowDefinition Height=\"Auto\"/></Grid.RowDefinitions>\n            <Image Grid.Row=\"0\" Source=\"$logo\" Height=\"60\" Margin=\"0,0,0,20\" Stretch=\"Uniform\"/>\n            <TextBlock Grid.Row=\"1\" Text=\"hello\" Foreground=\"White\" FontSize=\"18\" TextWrapping=\"Wrap\" TextAlignment=\"Center\" VerticalAlignment=\"Center\" FontWeight=\"SemiBold\"/>\n            <StackPanel Grid.Row=\"2\" Margin=\"0,20,0,0\">\n                <TextBlock Text=\"Sent by Equinox IT Support • Security Verified\" Foreground=\"#666\" FontSize=\"10\" HorizontalAlignment=\"Center\" Margin=\"0,0,0,15\"/>\n                <Button Name=\"btn\" Content=\"Acknowledge\" Height=\"36\" Width=\"140\" Background=\"#005a9c\" Foreground=\"White\" BorderThickness=\"0\" FontSize=\"14\" FontWeight=\"Bold\">\n                    <Button.Resources>\n                        <Style TargetType=\"Border\"><Setter Property=\"CornerRadius\" Value=\"18\"/></Style>\n                    </Button.Resources>\n                </Button>\n            </StackPanel>\n        </Grid>\n    </Border>\n</Window>\n'@;\nif (Test-Path $logoPath) { $xaml = $xaml.Replace('$logo', $logoUri) }\n$window = [Windows.Markup.XamlReader]::Load([System.Xml.XmlReader]::Create([System.IO.StringReader]::new($xaml)));\n$window.FindName('btn').Add_Click({$window.Close()});\n$window.Topmost = $true;\n$window.ShowDialog();"
+        },
+        "status": "completed",
+        "timestamp": "2026-03-11T08:01:14.105Z",
+        "output": "False\r\n",
+        "error": null,
+        "completedAt": "2026-03-11T08:02:21.948Z"
+      },
+      {
+        "id": "93b2ufih7",
+        "command": "runScript",
+        "params": {
+          "code": "Add-Type -AssemblyName PresentationFramework;\n$logoPath = 'C:/ProgramData/EQNProAgent/logo.png';\n$logoUri = \"file:///$logoPath\";\n$xaml = @'\n<Window xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\" Title=\"IT Alert\" Height=\"380\" Width=\"480\" WindowStyle=\"None\" AllowsTransparency=\"True\" Background=\"Transparent\" WindowStartupLocation=\"CenterScreen\" Topmost=\"True\">\n    <Border Background=\"#121212\" CornerRadius=\"16\" BorderBrush=\"#005a9c\" BorderThickness=\"2\">\n        <Grid Margin=\"25\">\n            <Grid.RowDefinitions><RowDefinition Height=\"Auto\"/><RowDefinition Height=\"*\"/><RowDefinition Height=\"Auto\"/></Grid.RowDefinitions>\n            <Image Grid.Row=\"0\" Source=\"$logo\" Height=\"60\" Margin=\"0,0,0,20\" Stretch=\"Uniform\"/>\n            <TextBlock Grid.Row=\"1\" Text=\"hello\n\" Foreground=\"White\" FontSize=\"18\" TextWrapping=\"Wrap\" TextAlignment=\"Center\" VerticalAlignment=\"Center\" FontWeight=\"SemiBold\"/>\n            <StackPanel Grid.Row=\"2\" Margin=\"0,20,0,0\">\n                <TextBlock Text=\"Sent by Equinox IT Support: for more information email us: itsupport@eqncs.com\" Foreground=\"#666\" FontSize=\"10\" HorizontalAlignment=\"Center\" Margin=\"0,0,0,15\"/>\n                <Button Name=\"btn\" Content=\"Acknowledge\" Height=\"36\" Width=\"140\" Background=\"#005a9c\" Foreground=\"White\" BorderThickness=\"0\" FontSize=\"14\" FontWeight=\"Bold\">\n                    <Button.Resources>\n                        <Style TargetType=\"Border\"><Setter Property=\"CornerRadius\" Value=\"18\"/></Style>\n                    </Button.Resources>\n                </Button>\n            </StackPanel>\n        </Grid>\n    </Border>\n</Window>\n'@;\nif (Test-Path $logoPath) { $xaml = $xaml.Replace('$logo', $logoUri) }\n$window = [Windows.Markup.XamlReader]::Load([System.Xml.XmlReader]::Create([System.IO.StringReader]::new($xaml)));\n$window.FindName('btn').Add_Click({$window.Close()});\n$window.Topmost = $true;\n$window.ShowDialog();"
+        },
+        "status": "completed",
+        "timestamp": "2026-03-11T08:03:25.927Z",
+        "output": "False\r\n",
+        "error": null,
+        "completedAt": "2026-03-11T08:03:39.718Z"
+      },
+      {
+        "id": "p6nrcycv4",
+        "command": "runScript",
+        "params": {
+          "code": "Add-Type -AssemblyName PresentationFramework;\n$logoPath = 'C:/ProgramData/EQNProAgent/logo.png';\n$logoUri = \"file:///$logoPath\";\n$xaml = @'\n<Window xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\" Title=\"IT Alert\" Height=\"380\" Width=\"480\" WindowStyle=\"None\" AllowsTransparency=\"True\" Background=\"Transparent\" WindowStartupLocation=\"CenterScreen\" Topmost=\"True\">\n    <Border Background=\"#121212\" CornerRadius=\"16\" BorderBrush=\"#005a9c\" BorderThickness=\"2\">\n        <Grid Margin=\"25\">\n            <Grid.RowDefinitions><RowDefinition Height=\"Auto\"/><RowDefinition Height=\"*\"/><RowDefinition Height=\"Auto\"/></Grid.RowDefinitions>\n            <Image Grid.Row=\"0\" Source=\"$logo\" Height=\"60\" Margin=\"0,0,0,20\" Stretch=\"Uniform\"/>\n            <TextBlock Grid.Row=\"1\" Text=\"hello\n\" Foreground=\"White\" FontSize=\"18\" TextWrapping=\"Wrap\" TextAlignment=\"Center\" VerticalAlignment=\"Center\" FontWeight=\"SemiBold\"/>\n            <StackPanel Grid.Row=\"2\" Margin=\"0,20,0,0\">\n                <TextBlock Text=\"Sent by Equinox IT Support: for more information email us: itsupport@eqncs.com\" Foreground=\"#666\" FontSize=\"10\" HorizontalAlignment=\"Center\" Margin=\"0,0,0,15\"/>\n                <Button Name=\"btn\" Content=\"Acknowledge\" Height=\"36\" Width=\"140\" Background=\"#005a9c\" Foreground=\"White\" BorderThickness=\"0\" FontSize=\"14\" FontWeight=\"Bold\">\n                    <Button.Resources>\n                        <Style TargetType=\"Border\"><Setter Property=\"CornerRadius\" Value=\"18\"/></Style>\n                    </Button.Resources>\n                </Button>\n            </StackPanel>\n        </Grid>\n    </Border>\n</Window>\n'@;\nif (Test-Path $logoPath) { $xaml = $xaml.Replace('$logo', $logoUri) }\n$window = [Windows.Markup.XamlReader]::Load([System.Xml.XmlReader]::Create([System.IO.StringReader]::new($xaml)));\n$window.FindName('btn').Add_Click({$window.Close()});\n$window.Topmost = $true;\n$window.ShowDialog() | Out-Null; \"User Acknowledge and closed\""
+        },
+        "status": "completed",
+        "timestamp": "2026-03-11T08:17:18.038Z",
+        "output": "User Acknowledge and closed\r\n",
+        "error": null,
+        "completedAt": "2026-03-11T08:17:26.858Z"
+      },
+      {
+        "id": "w2m92yaff",
+        "command": "uninstallApp",
+        "params": {
+          "appId": "{CE2F96D0-63D2-4B9C-A8D6-0D1A60840BD8}"
+        },
+        "status": "completed",
+        "timestamp": "2026-03-11T09:28:09.539Z",
+        "output": "Uninstallation triggered for iVMS-4200.",
+        "error": null,
+        "completedAt": "2026-03-11T09:28:12.621Z"
+      },
+      {
+        "id": "wkitjjcnq",
+        "command": "uninstallApp",
+        "params": {
+          "appId": "{CE2F96D0-63D2-4B9C-A8D6-0D1A60840BD8}"
+        },
+        "status": "completed",
+        "timestamp": "2026-03-11T09:34:02.516Z",
+        "output": "Uninstallation command issued for iVMS-4200, but registry key still exists. It may require a reboot or manual intervention.",
+        "completedAt": "2026-03-11T10:01:22.605Z"
+      },
+      {
+        "id": "gbu56083p",
+        "command": "uninstallApp",
+        "params": {
+          "appId": "{CE2F96D0-63D2-4B9C-A8D6-0D1A60840BD8}"
+        },
+        "status": "completed",
+        "timestamp": "2026-03-11T09:34:16.475Z",
+        "output": "Uninstallation command issued for iVMS-4200, but registry key still exists. It may require a reboot or manual intervention.",
+        "completedAt": "2026-03-11T10:01:30.484Z"
+      },
+      {
+        "id": "rwk5i36hu",
+        "command": "uninstallApp",
+        "params": {
+          "appId": "{CE2F96D0-63D2-4B9C-A8D6-0D1A60840BD8}"
+        },
+        "status": "completed",
+        "timestamp": "2026-03-11T09:34:59.569Z",
+        "output": "Uninstallation command issued for iVMS-4200, but registry key still exists. It may require a reboot or manual intervention.",
+        "completedAt": "2026-03-11T10:01:30.033Z"
+      }
+    ],
+    "isp": "Afrihost SP",
+    "agentVersion": "1.2.4",
+    "software": [
+      {
+        "name": "Adobe Acrobat (64-bit)",
+        "version": "25.001.21265",
+        "publisher": "Adobe",
+        "id": "{AC76BA86-1033-FF00-7760-BC15014EA700}",
+        "date": "20260303"
+      },
+      {
+        "name": "Adobe Refresh Manager",
+        "version": "1.8.0",
+        "publisher": "Adobe Systems Incorporated",
+        "id": "{AC76BA86-0804-1033-1959-018244601149}",
+        "date": "20260216"
+      },
+      {
+        "name": "Android Studio",
+        "version": "2025.2",
+        "publisher": "Google LLC",
+        "id": "Android Studio",
+        "date": null
+      },
+      {
+        "name": "Dell Trusted Device",
+        "version": "7.0.3.0",
+        "publisher": "Dell Technologies, Inc.",
+        "id": "{5739D6CF-79D3-4C86-9BF7-E6653BC659F3}",
+        "date": "20250416"
+      },
+      {
+        "name": "ExpressVPN",
+        "version": "12.104.0.128",
+        "publisher": "ExpressVPN",
+        "id": "{4524edb4-42af-4443-b1e1-5b609b5803e0}",
+        "date": null
+      },
+      {
+        "name": "ExpressVPN",
+        "version": "12.104.0.128",
+        "publisher": "ExpressVPN",
+        "id": "{E5B9C3E5-889C-4F22-A959-F4B89C4D78B1}",
+        "date": "20251021"
+      },
+      {
+        "name": "Fibocom L860 Mobile Broadband Driver Package",
+        "version": "6.0.0.21",
+        "publisher": "Fibocom Wireless Inc.",
+        "id": "{EC8A71CF-467F-4447-AE9D-D44A5E41BFB4}_is1",
+        "date": "20240324"
+      },
+      {
+        "name": "Git",
+        "version": "2.53.0",
+        "publisher": "The Git Development Community",
+        "id": "Git_is1",
+        "date": "20260205"
+      },
+      {
+        "name": "Google Chrome",
+        "version": "145.0.7632.160",
+        "publisher": "Google LLC",
+        "id": "{B429CCDF-FF42-36F6-9CCB-6AFB00BD2549}",
+        "date": "20260305"
+      },
+      {
+        "name": "Intel(R) Arc Software & Drivers",
+        "version": "1.0.962.4",
+        "publisher": "Intel(R) Corporation",
+        "id": "Intel(R) Arc Software & Drivers",
+        "date": null
+      },
+      {
+        "name": "Intel� Software Installer",
+        "version": "23.110.0.5",
+        "publisher": "Intel Corporation",
+        "id": "{5d87c163-3e35-4153-9ba6-942e947ce7b1}",
+        "date": null
+      },
+      {
+        "name": "iVMS-4200",
+        "version": "3.13.0.5",
+        "publisher": "Hangzhou Hikvision Digital Technology Co., Ltd.",
+        "id": "{CE2F96D0-63D2-4B9C-A8D6-0D1A60840BD8}",
+        "date": null
+      },
+      {
+        "name": "Java(TM) SE Development Kit 23.0.2 (64-bit)",
+        "version": "23.0.2.0",
+        "publisher": "Oracle Corporation",
+        "id": "{8EFDE921-88A2-5D0A-A920-0AB07B2A3181}",
+        "date": "20250310"
+      },
+      {
+        "name": "KeePass 2.61",
+        "version": "2.61.0",
+        "publisher": "Dominik Reichl",
+        "id": "{D48EC6CC-E202-4AF6-9130-4D7F181E9693}",
+        "date": "20260305"
+      },
+      {
+        "name": "K-Lite Codec Pack 19.5.5 Standard",
+        "version": "19.5.5",
+        "publisher": "KLCP",
+        "id": "KLiteCodecPack_is1",
+        "date": "20260305"
+      },
+      {
+        "name": "Microsoft .NET 8.0 Templates 8.0.419 (x64)",
+        "version": "32.14.55941",
+        "publisher": "Microsoft Corporation",
+        "id": "{9DC400E0-A330-47CE-BA54-B4A793D3222C}",
+        "date": "20260311"
+      },
+      {
+        "name": "Microsoft .NET AppHost Pack - 8.0.25 (x64)",
+        "version": "64.100.48707",
+        "publisher": "Microsoft Corporation",
+        "id": "{317C54D6-809F-44DA-858C-5C1D1287B622}",
+        "date": "20260311"
+      },
+      {
+        "name": "Microsoft .NET AppHost Pack - 8.0.25 (x64_arm64)",
+        "version": "64.100.48707",
+        "publisher": "Microsoft Corporation",
+        "id": "{508AB495-4537-4551-A52F-EB0066F1BD88}",
+        "date": "20260311"
+      },
+      {
+        "name": "Microsoft .NET AppHost Pack - 8.0.25 (x64_x86)",
+        "version": "64.100.48707",
+        "publisher": "Microsoft Corporation",
+        "id": "{B56B9E8B-ACB4-4AEC-85E0-B80556E1B66B}",
+        "date": "20260311"
+      },
+      {
+        "name": "Microsoft .NET Framework 4.8.1 SDK",
+        "version": "4.8.09032",
+        "publisher": "Microsoft Corporation",
+        "id": "{BD4C49AC-2A45-48B0-B3F7-0C6043987AD0}",
+        "date": "20250619"
+      },
+      {
+        "name": "Microsoft .NET Framework 4.8.1 Targeting Pack",
+        "version": "4.8.09032",
+        "publisher": "Microsoft Corporation",
+        "id": "{94DDB521-CDD4-4A83-BBE0-D3C856FE9420}",
+        "date": "20250619"
+      },
+      {
+        "name": "Microsoft .NET Host - 5.0.17 (x64)",
+        "version": "40.68.31213",
+        "publisher": "Microsoft Corporation",
+        "id": "{E663ED1E-899C-40E8-91D0-8D37B95E3C69}",
+        "date": "20241118"
+      },
+      {
+        "name": "Microsoft .NET Host - 6.0.36 (x64)",
+        "version": "48.144.23141",
+        "publisher": "Microsoft Corporation",
+        "id": "{D6932D97-36F1-40B8-9CDC-CA8365B21000}",
+        "date": "20241113"
+      },
+      {
+        "name": "Microsoft .NET Host - 8.0.25 (x64)",
+        "version": "64.100.48707",
+        "publisher": "Microsoft Corporation",
+        "id": "{55218133-14C8-4372-A748-614DE61D6AAA}",
+        "date": "20260311"
+      },
+      {
+        "name": "Microsoft .NET Host FX Resolver - 5.0.17 (x64)",
+        "version": "40.68.31213",
+        "publisher": "Microsoft Corporation",
+        "id": "{8BA25391-0BE6-443A-8EBF-86A29BAFC479}",
+        "date": "20241118"
+      },
+      {
+        "name": "Microsoft .NET Host FX Resolver - 6.0.36 (x64)",
+        "version": "48.144.23141",
+        "publisher": "Microsoft Corporation",
+        "id": "{A9E32B25-994B-4856-A12B-0EBED3050410}",
+        "date": "20241113"
+      },
+      {
+        "name": "Microsoft .NET Host FX Resolver - 8.0.25 (x64)",
+        "version": "64.100.48707",
+        "publisher": "Microsoft Corporation",
+        "id": "{D0E1D031-D6BB-43A5-BD42-175C0C4EE245}",
+        "date": "20260311"
+      },
+      {
+        "name": "Microsoft .NET Runtime - 5.0.17 (x64)",
+        "version": "40.68.31213",
+        "publisher": "Microsoft Corporation",
+        "id": "{5A66E598-37BD-4C8A-A7CB-A71C32ABCD78}",
+        "date": "20241118"
+      },
+      {
+        "name": "Microsoft .NET Runtime - 6.0.36 (x64)",
+        "version": "48.144.23141",
+        "publisher": "Microsoft Corporation",
+        "id": "{C912E33F-956A-4921-9F55-CC11AE8F09AF}",
+        "date": "20241113"
+      },
+      {
+        "name": "Microsoft .NET Runtime - 8.0.25 (x64)",
+        "version": "64.100.48707",
+        "publisher": "Microsoft Corporation",
+        "id": "{99B0C384-9362-4D4E-8DAF-23CA44E306E8}",
+        "date": "20260311"
+      },
+      {
+        "name": "Microsoft .NET SDK 8.0.419 (x64)",
+        "version": "8.4.1926.11301",
+        "publisher": "Microsoft Corporation",
+        "id": "{977ba709-fd72-418b-8f38-3deaa20b8d5a}",
+        "date": null
+      },
+      {
+        "name": "Microsoft .NET Standard Targeting Pack - 2.1.0 (x64)",
+        "version": "24.0.28113",
+        "publisher": "Microsoft Corporation",
+        "id": "{A7036CFB-B403-4598-85FF-D397ABB88173}",
+        "date": "20241011"
+      },
+      {
+        "name": "Microsoft .NET Targeting Pack - 8.0.25 (x64)",
+        "version": "64.100.48707",
+        "publisher": "Microsoft Corporation",
+        "id": "{2978E914-6308-4EE3-9027-D27B0222D543}",
+        "date": "20260311"
+      },
+      {
+        "name": "Microsoft .NET Toolset 8.0.419 (x64)",
+        "version": "32.14.55941",
+        "publisher": "Microsoft Corporation",
+        "id": "{0637BD27-0040-4C3D-ABB4-269CC0811F77}",
+        "date": "20260311"
+      },
+      {
+        "name": "Microsoft 365 Apps for business - en-us",
+        "version": "16.0.19725.20172",
+        "publisher": "Microsoft Corporation",
+        "id": "O365BusinessRetail - en-us",
+        "date": null
+      },
+      {
+        "name": "Microsoft 365 Apps for business - fr-fr",
+        "version": "16.0.19725.20172",
+        "publisher": "Microsoft Corporation",
+        "id": "O365BusinessRetail - fr-fr",
+        "date": null
+      },
+      {
+        "name": "Microsoft 365 Apps for business - it-it",
+        "version": "16.0.19725.20172",
+        "publisher": "Microsoft Corporation",
+        "id": "O365BusinessRetail - it-it",
+        "date": null
+      },
+      {
+        "name": "Microsoft 365 Apps for enterprise - en-us",
+        "version": "16.0.19725.20172",
+        "publisher": "Microsoft Corporation",
+        "id": "O365ProPlusRetail - en-us",
+        "date": null
+      },
+      {
+        "name": "Microsoft 365-apps voor bedrijven - nl-nl",
+        "version": "16.0.19725.20172",
+        "publisher": "Microsoft Corporation",
+        "id": "O365BusinessRetail - nl-nl",
+        "date": null
+      },
+      {
+        "name": "Microsoft 365-apps voor ondernemingen - nl-nl",
+        "version": "16.0.19725.20172",
+        "publisher": "Microsoft Corporation",
+        "id": "O365ProPlusRetail - nl-nl",
+        "date": null
+      },
+      {
+        "name": "Microsoft ASP.NET Core 8.0.25 - Shared Framework (x64)",
+        "version": "8.0.25.26112",
+        "publisher": "Microsoft Corporation",
+        "id": "{1ad59802-63d0-4834-9329-5a2585689169}",
+        "date": null
+      },
+      {
+        "name": "Microsoft ASP.NET Core 8.0.25 Shared Framework (x64)",
+        "version": "8.0.25.26112",
+        "publisher": "Microsoft Corporation",
+        "id": "{671A8FA4-3958-361B-BA4E-D7DE0079E929}",
+        "date": "20260311"
+      },
+      {
+        "name": "Microsoft ASP.NET Core 8.0.25 Targeting Pack (x64)",
+        "version": "8.0.25.26112",
+        "publisher": "Microsoft Corporation",
+        "id": "{949EAC1A-4C8D-394B-B1CC-527ECA9A4762}",
+        "date": "20260311"
+      },
+      {
+        "name": "Microsoft Edge",
+        "version": "145.0.3800.97",
+        "publisher": "Microsoft Corporation",
+        "id": "Microsoft Edge",
+        "date": "20260309"
+      },
+      {
+        "name": "Microsoft Edge WebView2 Runtime",
+        "version": "145.0.3800.97",
+        "publisher": "Microsoft Corporation",
+        "id": "Microsoft EdgeWebView",
+        "date": "20260309"
+      },
+      {
+        "name": "Microsoft Intune Management Extension",
+        "version": "1.99.101.0",
+        "publisher": "Microsoft Corporation",
+        "id": "{4E28B4C2-BF17-4C61-B77B-B1673C292021}",
+        "date": "20260216"
+      },
+      {
+        "name": "Microsoft OneDrive",
+        "version": "26.026.0209.0004",
+        "publisher": "Microsoft Corporation",
+        "id": "OneDriveSetup.exe",
+        "date": null
+      },
+      {
+        "name": "Microsoft OneNote - de-de",
+        "version": "16.0.19725.20172",
+        "publisher": "Microsoft Corporation",
+        "id": "OneNoteFreeRetail - de-de",
+        "date": null
+      },
+      {
+        "name": "Microsoft OneNote - en-us",
+        "version": "16.0.19725.20172",
+        "publisher": "Microsoft Corporation",
+        "id": "OneNoteFreeRetail - en-us",
+        "date": null
+      },
+      {
+        "name": "Microsoft OneNote - fr-fr",
+        "version": "16.0.19725.20172",
+        "publisher": "Microsoft Corporation",
+        "id": "OneNoteFreeRetail - fr-fr",
+        "date": null
+      },
+      {
+        "name": "Microsoft OneNote - it-it",
+        "version": "16.0.19725.20172",
+        "publisher": "Microsoft Corporation",
+        "id": "OneNoteFreeRetail - it-it",
+        "date": null
+      },
+      {
+        "name": "Microsoft OneNote - nl-nl",
+        "version": "16.0.19725.20172",
+        "publisher": "Microsoft Corporation",
+        "id": "OneNoteFreeRetail - nl-nl",
+        "date": null
+      },
+      {
+        "name": "Microsoft Teams Meeting Add-in for Microsoft Office",
+        "version": "1.25.28902",
+        "publisher": "Microsoft",
+        "id": "{A7AB73A3-CB10-4AA5-9D38-6AEFFBDE4C91}",
+        "date": "20251121"
+      },
+      {
+        "name": "Microsoft Update Health Tools",
+        "version": "5.72.0.0",
+        "publisher": "Microsoft Corporation",
+        "id": "{C6FD611E-7EFE-488C-A0E0-974C09EF6473}",
+        "date": "20241006"
+      },
+      {
+        "name": "Microsoft Visual C++ 2008 Redistributable - x64 9.0.30729",
+        "version": "9.0.30729",
+        "publisher": "Microsoft Corporation",
+        "id": "{56F27690-F6EA-3356-980A-02BA379506EE}",
+        "date": "20250224"
+      },
+      {
+        "name": "Microsoft Visual C++ 2008 Redistributable - x64 9.0.30729.6161",
+        "version": "9.0.30729.6161",
+        "publisher": "Microsoft Corporation",
+        "id": "{5FCE6D76-F5DC-37AB-B2B8-22AB8CEDB1D4}",
+        "date": "20250307"
+      },
+      {
+        "name": "Microsoft Visual C++ 2008 Redistributable - x86 9.0.30729.6161",
+        "version": "9.0.30729.6161",
+        "publisher": "Microsoft Corporation",
+        "id": "{9BE518E6-ECC6-35A9-88E4-87755C07200F}",
+        "date": "20250224"
+      },
+      {
+        "name": "Microsoft Visual C++ 2010  x64 Redistributable - 10.0.40219",
+        "version": "10.0.40219",
+        "publisher": "Microsoft Corporation",
+        "id": "{1D8E6291-B0D5-35EC-8441-6616F567A0F7}",
+        "date": "20251021"
+      },
+      {
+        "name": "Microsoft Visual C++ 2010  x86 Redistributable - 10.0.40219",
+        "version": "10.0.40219",
+        "publisher": "Microsoft Corporation",
+        "id": "{F0C3E5D1-1ADE-321E-8167-68EF0DE699A5}",
+        "date": "20251021"
+      },
+      {
+        "name": "Microsoft Visual C++ 2013 Redistributable (x64) - 12.0.40664",
+        "version": "12.0.40664.0",
+        "publisher": "Microsoft Corporation",
+        "id": "{042d26ef-3dbe-4c25-95d3-4c1b11b235a7}",
+        "date": null
+      },
+      {
+        "name": "Microsoft Visual C++ 2013 Redistributable (x86) - 12.0.40664",
+        "version": "12.0.40664.0",
+        "publisher": "Microsoft Corporation",
+        "id": "{9dff3540-fc85-4ed5-ac84-9e3c7fd8bece}",
+        "date": null
+      },
+      {
+        "name": "Microsoft Visual C++ 2013 x64 Additional Runtime - 12.0.40664",
+        "version": "12.0.40664",
+        "publisher": "Microsoft Corporation",
+        "id": "{010792BA-551A-3AC0-A7EF-0FAB4156C382}",
+        "date": "20250224"
+      },
+      {
+        "name": "Microsoft Visual C++ 2013 x64 Minimum Runtime - 12.0.40664",
+        "version": "12.0.40664",
+        "publisher": "Microsoft Corporation",
+        "id": "{53CF6934-A98D-3D84-9146-FC4EDF3D5641}",
+        "date": "20250224"
+      },
+      {
+        "name": "Microsoft Visual C++ 2013 x86 Additional Runtime - 12.0.40664",
+        "version": "12.0.40664",
+        "publisher": "Microsoft Corporation",
+        "id": "{D401961D-3A20-3AC7-943B-6139D5BD490A}",
+        "date": "20251021"
+      },
+      {
+        "name": "Microsoft Visual C++ 2013 x86 Minimum Runtime - 12.0.40664",
+        "version": "12.0.40664",
+        "publisher": "Microsoft Corporation",
+        "id": "{8122DAB1-ED4D-3676-BB0A-CA368196543E}",
+        "date": "20251021"
+      },
+      {
+        "name": "Microsoft Visual C++ 2022 X64 Additional Runtime - 14.50.35719",
+        "version": "14.50.35719",
+        "publisher": "Microsoft Corporation",
+        "id": "{AECD4ED0-8A3B-41E9-92D1-6BEE0374CCAF}",
+        "date": "20251201"
+      },
+      {
+        "name": "Microsoft Visual C++ 2022 X64 Minimum Runtime - 14.50.35719",
+        "version": "14.50.35719",
+        "publisher": "Microsoft Corporation",
+        "id": "{61B44572-8722-4DAF-8ACF-8E742D30BCC5}",
+        "date": "20251201"
+      },
+      {
+        "name": "Microsoft Visual C++ 2022 X86 Additional Runtime - 14.50.35719",
+        "version": "14.50.35719",
+        "publisher": "Microsoft Corporation",
+        "id": "{773AD50D-AAE6-4BA1-AD01-B5A38874C840}",
+        "date": "20251201"
+      },
+      {
+        "name": "Microsoft Visual C++ 2022 X86 Minimum Runtime - 14.50.35719",
+        "version": "14.50.35719",
+        "publisher": "Microsoft Corporation",
+        "id": "{5A0DFA55-3851-45BC-8B20-95EA4BF5812D}",
+        "date": "20251201"
+      },
+      {
+        "name": "Microsoft Visual C++ v14 Redistributable (x64) - 14.50.35719",
+        "version": "14.50.35719.0",
+        "publisher": "Microsoft Corporation",
+        "id": "{91ee571b-0e8a-4c65-9eaf-2e2f5fc60c00}",
+        "date": null
+      },
+      {
+        "name": "Microsoft Visual C++ v14 Redistributable (x86) - 14.50.35719",
+        "version": "14.50.35719.0",
+        "publisher": "Microsoft Corporation",
+        "id": "{0e4ccf1b-d073-4cfe-8a24-e86185719b56}",
+        "date": null
+      },
+      {
+        "name": "Microsoft Visual Studio 2010 Tools for Office Runtime (x64)",
+        "version": "10.0.60922",
+        "publisher": "Microsoft Corporation",
+        "id": "{610487D9-3460-328A-9333-219D43A75CC5}",
+        "date": "20251021"
+      },
+      {
+        "name": "Microsoft Visual Studio 2010 Tools for Office Runtime (x64)",
+        "version": "10.0.60917",
+        "publisher": "Microsoft Corporation",
+        "id": "Microsoft Visual Studio 2010 Tools for Office Runtime (x64)",
+        "date": null
+      },
+      {
+        "name": "Microsoft Windows Desktop Runtime - 5.0.17 (x64)",
+        "version": "5.0.17.31219",
+        "publisher": "Microsoft Corporation",
+        "id": "{20d5df4e-006c-4d6d-a0dc-490d009b9786}",
+        "date": null
+      },
+      {
+        "name": "Microsoft Windows Desktop Runtime - 5.0.17 (x64)",
+        "version": "40.68.31219",
+        "publisher": "Microsoft Corporation",
+        "id": "{3C31CBA1-A0D9-4B95-A807-AD2313D12F47}",
+        "date": "20241118"
+      },
+      {
+        "name": "Microsoft Windows Desktop Runtime - 6.0.36 (x64)",
+        "version": "48.144.23186",
+        "publisher": "Microsoft Corporation",
+        "id": "{61D4736B-3325-4D4A-BD41-8BD206C6A86E}",
+        "date": "20241113"
+      },
+      {
+        "name": "Microsoft Windows Desktop Runtime - 6.0.36 (x64)",
+        "version": "6.0.36.34217",
+        "publisher": "Microsoft Corporation",
+        "id": "{0532b8f2-12d7-43de-95fc-7b87006758a8}",
+        "date": null
+      },
+      {
+        "name": "Microsoft Windows Desktop Runtime - 8.0.25 (x64)",
+        "version": "8.0.25.35812",
+        "publisher": "Microsoft Corporation",
+        "id": "{64c75e04-ef03-4544-b153-24860eac8d23}",
+        "date": null
+      },
+      {
+        "name": "Microsoft Windows Desktop Runtime - 8.0.25 (x64)",
+        "version": "64.100.48707",
+        "publisher": "Microsoft Corporation",
+        "id": "{C5343D9A-9640-4351-90D2-F6CF157C208E}",
+        "date": "20260311"
+      },
+      {
+        "name": "Microsoft Windows Desktop Targeting Pack - 8.0.25 (x64)",
+        "version": "64.100.48707",
+        "publisher": "Microsoft Corporation",
+        "id": "{89F63B7E-F459-4CAB-BAE1-7F7C1EC2B19C}",
+        "date": "20260311"
+      },
+      {
+        "name": "Microsoft.NET.Sdk.Android.Manifest-8.0.100 (x64)",
+        "version": "34.0.43",
+        "publisher": "Microsoft Corporation",
+        "id": "{B5A57BF9-FC7A-4FA6-BAEB-46E173986DF3}",
+        "date": "20241011"
+      },
+      {
+        "name": "Microsoft.NET.Sdk.Aspire.Manifest-8.0.100 (x64)",
+        "version": "64.0.5426",
+        "publisher": "Microsoft Corporation",
+        "id": "{F3AEB036-4B8A-4C25-B4D2-850944E909C4}",
+        "date": "20241011"
+      },
+      {
+        "name": "Microsoft.NET.Sdk.iOS.Manifest-8.0.100 (x64)",
+        "version": "17.0.8478",
+        "publisher": "Microsoft Corporation",
+        "id": "{6BF59E75-BE05-4C69-9C48-3532B6DE0EC5}",
+        "date": "20241011"
+      },
+      {
+        "name": "Microsoft.NET.Sdk.MacCatalyst.Manifest-8.0.100 (x64)",
+        "version": "17.0.8478",
+        "publisher": "Microsoft Corporation",
+        "id": "{8B5384CA-D189-4CFE-8DF0-2D05B4EA8499}",
+        "date": "20241011"
+      },
+      {
+        "name": "Microsoft.NET.Sdk.macOS.Manifest-8.0.100 (x64)",
+        "version": "14.0.8478",
+        "publisher": "Microsoft Corporation",
+        "id": "{98927287-8779-447A-919E-73028D53F719}",
+        "date": "20241011"
+      },
+      {
+        "name": "Microsoft.NET.Sdk.Maui.Manifest-8.0.100 (x64)",
+        "version": "8.0.3",
+        "publisher": "Microsoft Corporation",
+        "id": "{116EF6D0-AE8E-4E6D-B0D8-EFF145CD45DA}",
+        "date": "20241011"
+      },
+      {
+        "name": "Microsoft.NET.Sdk.tvOS.Manifest-8.0.100 (x64)",
+        "version": "17.0.8478",
+        "publisher": "Microsoft Corporation",
+        "id": "{568F99E8-9F2D-48D7-A05D-D64C512B3AFD}",
+        "date": "20241011"
+      },
+      {
+        "name": "Microsoft.NET.Workload.Emscripten.Current.Manifest (x64)",
+        "version": "64.100.48546",
+        "publisher": "Microsoft Corporation",
+        "id": "{187B7A9D-32F9-422A-BCF3-3E387444C53F}",
+        "date": "20260311"
+      },
+      {
+        "name": "Microsoft.NET.Workload.Emscripten.net6.Manifest (x64)",
+        "version": "64.100.48546",
+        "publisher": "Microsoft Corporation",
+        "id": "{B2307C90-A986-4029-8234-F9819CB2DBB6}",
+        "date": "20260311"
+      },
+      {
+        "name": "Microsoft.NET.Workload.Emscripten.net7.Manifest (x64)",
+        "version": "64.100.48546",
+        "publisher": "Microsoft Corporation",
+        "id": "{6F9231AA-A9AE-48C5-A910-1D02CF8E2626}",
+        "date": "20260311"
+      },
+      {
+        "name": "Microsoft.NET.Workload.Mono.Toolchain.Current.Manifest (x64)",
+        "version": "64.100.48707",
+        "publisher": "Microsoft Corporation",
+        "id": "{64574D40-4E86-43FB-BD7A-4E1D83DB9058}",
+        "date": "20260311"
+      },
+      {
+        "name": "Microsoft.NET.Workload.Mono.Toolchain.net6.Manifest (x64)",
+        "version": "64.100.48707",
+        "publisher": "Microsoft Corporation",
+        "id": "{82625C82-7A4D-424E-8F77-A4E7F9E400D7}",
+        "date": "20260311"
+      },
+      {
+        "name": "Microsoft.NET.Workload.Mono.Toolchain.net7.Manifest (x64)",
+        "version": "64.100.48707",
+        "publisher": "Microsoft Corporation",
+        "id": "{0B7DB46C-51CE-49D8-868A-670592F7C2DA}",
+        "date": "20260311"
+      },
+      {
+        "name": "Mozilla Firefox (x64 en-US)",
+        "version": "148.0.2",
+        "publisher": "Mozilla",
+        "id": "Mozilla Firefox",
+        "date": null
+      },
+      {
+        "name": "Mozilla Firefox (x86 en-US)",
+        "version": "144.0",
+        "publisher": "Mozilla",
+        "id": "Mozilla Firefox 144.0 (x86 en-US)",
+        "date": null
+      },
+      {
+        "name": "Mozilla Maintenance Service",
+        "version": "148.0.2",
+        "publisher": "Mozilla",
+        "id": "MozillaMaintenanceService",
+        "date": null
+      },
+      {
+        "name": "Node.js",
+        "version": "24.14.0",
+        "publisher": "Node.js Foundation",
+        "id": "{47D89795-2EFC-4BC5-BBF4-DE59E1059816}",
+        "date": "20260226"
+      },
+      {
+        "name": "Office 16 Click-to-Run Extensibility Component",
+        "version": "16.0.19725.20172",
+        "publisher": "Microsoft Corporation",
+        "id": "{90160000-008C-0000-1000-0000000FF1CE}",
+        "date": "20260310"
+      },
+      {
+        "name": "Office 16 Click-to-Run Licensing Component",
+        "version": "16.0.19029.20208",
+        "publisher": "Microsoft Corporation",
+        "id": "{90160000-007E-0000-1000-0000000FF1CE}",
+        "date": "20250820"
+      },
+      {
+        "name": "Office 16 Click-to-Run Localization Component",
+        "version": "16.0.19725.20172",
+        "publisher": "Microsoft Corporation",
+        "id": "{90160000-008C-0407-1000-0000000FF1CE}",
+        "date": "20260310"
+      },
+      {
+        "name": "Office 16 Click-to-Run Localization Component",
+        "version": "16.0.19725.20172",
+        "publisher": "Microsoft Corporation",
+        "id": "{90160000-008C-0410-1000-0000000FF1CE}",
+        "date": "20260310"
+      },
+      {
+        "name": "Office 16 Click-to-Run Localization Component",
+        "version": "16.0.19725.20172",
+        "publisher": "Microsoft Corporation",
+        "id": "{90160000-008C-040C-1000-0000000FF1CE}",
+        "date": "20260310"
+      },
+      {
+        "name": "Office 16 Click-to-Run Localization Component",
+        "version": "16.0.19725.20172",
+        "publisher": "Microsoft Corporation",
+        "id": "{90160000-008C-0413-1000-0000000FF1CE}",
+        "date": "20260310"
+      },
+      {
+        "name": "OpenSSL 3.6.1 (64-bit)",
+        "version": "3.6.1",
+        "publisher": "OpenSSL Win64 Installer Team",
+        "id": "OpenSSL (64-bit)_is1",
+        "date": "20260205"
+      },
+      {
+        "name": "Oracle VirtualBox 7.2.6",
+        "version": "7.2.6",
+        "publisher": "Oracle and/or its affiliates",
+        "id": "{9F0863CB-0CBD-4EE3-95D7-C055C12E913B}",
+        "date": "20260211"
+      },
+      {
+        "name": "Orca",
+        "version": "3.1.3790.0000",
+        "publisher": "Microsoft Corporation",
+        "id": "{85F4CBCB-9BBC-4B50-A7D8-E1106771498D}",
+        "date": "20250619"
+      },
+      {
+        "name": "Realtek Audio Driver",
+        "version": "6.0.9706.1",
+        "publisher": "Realtek Semiconductor Corp.",
+        "id": "{F132AF7F-7BCA-4EDE-8A7C-958108FE7DBC}",
+        "date": "20250528"
+      },
+      {
+        "name": "SADP",
+        "version": "3.1.4.4",
+        "publisher": "Hangzhou Hikvision Digital Technology Co., Ltd.",
+        "id": "{7D9B79C2-B1B2-433B-844F-F4299B86F26E}",
+        "date": null
+      },
+      {
+        "name": "Safe Exam Browser",
+        "version": "3.10.1.864",
+        "publisher": "ETH Z�rich",
+        "id": "{a8740d63-60f2-4191-9df4-a08150c1dfe3}",
+        "date": null
+      },
+      {
+        "name": "Safe Exam Browser (x64)",
+        "version": "3.10.1.864",
+        "publisher": "ETH Z�rich",
+        "id": "{4C5BC513-6889-4B0E-8341-2750DDCDFECB}",
+        "date": "20251208"
+      },
+      {
+        "name": "SharePoint Online Management Shell",
+        "version": "16.0.25513.12000",
+        "publisher": "Microsoft Corporation",
+        "id": "{95160000-115B-0409-1000-0000000FF1CE}",
+        "date": "20241209"
+      },
+      {
+        "name": "Striata Reader (64-bit)",
+        "version": "2.31-2",
+        "publisher": "Doxim LLC",
+        "id": "{13d868cf-47e9-4b3d-9366-a0c60f82e5aa}",
+        "date": null
+      },
+      {
+        "name": "UltraViewer version 6.6.124",
+        "version": "6.6.124",
+        "publisher": "DucFabulous",
+        "id": "{E0FABD74-083B-47F4-AC5B-CA4237BF8913}_is1",
+        "date": "20260217"
+      },
+      {
+        "name": "Vanta Device Monitor",
+        "version": "2.16.1",
+        "publisher": "Vanta Inc.",
+        "id": "{94D8C90D-CE97-48C0-85DA-37C5177D3CED}",
+        "date": "20260115"
+      },
+      {
+        "name": "Windows SDK AddOn",
+        "version": "10.1.0.0",
+        "publisher": "Microsoft Corporation",
+        "id": "{5E9BF0FA-BD7F-4FBF-886B-7138DAB9F8D3}",
+        "date": "20250619"
+      },
+      {
+        "name": "WinPcap 4.1.3",
+        "version": "4.1.0.2980",
+        "publisher": "Riverbed Technology, Inc.",
+        "id": "WinPcapInst",
+        "date": null
+      },
+      {
+        "name": "WinRAR 7.20 (64-bit)",
+        "version": "7.20.0",
+        "publisher": "win.rar GmbH",
+        "id": "WinRAR archiver",
+        "date": null
+      },
+      {
+        "name": "YI IOT",
+        "version": "1.0.1.1_202209261648",
+        "publisher": "YIIOT",
+        "id": "YI IOT",
+        "date": null
+      }
+    ]
+  }
+}
