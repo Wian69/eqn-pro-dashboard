@@ -245,6 +245,17 @@ $window.ShowDialog() | Out-Null; "User Acknowledge and closed"`;
 
     return (
         <div className="page-container">
+            {error && (
+                <div className="glass-panel" style={{ marginBottom: '24px', padding: '24px', border: '1px solid #ef4444' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', color: '#ef4444' }}>
+                        <AlertTriangle size={32} />
+                        <div>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>Device Connectivity Error</h2>
+                            <p style={{ opacity: 0.8 }}>{error}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
             {/* Nav & Breadcrumbs */}
             <nav className="breadcrumb">
                 <button onClick={() => router.push('/devices')} className="nav-btn">
