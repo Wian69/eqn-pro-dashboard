@@ -6,19 +6,33 @@ export default function Users() {
     const [users, setUsers] = useState<any[]>([]);
     const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [search, setSearch] = useState('');
     const [typeFilter, setTypeFilter] = useState('all');
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'displayName', direction: 'asc' });
 
     useEffect(() => {
+        setError(null);
         fetch('/api/users')
-            .then(res => res.json())
+            .then(async res => {
+                if (!res.ok) {
+                    const errorData = await res.json().catch(() => ({}));
+                    throw new Error(errorData.details || errorData.error || `API Error: ${res.status}`);
+                }
+                return res.json();
+            })
             .then(data => {
                 setUsers(data.all || []);
                 setFilteredUsers(data.all || []);
-                setLoading(false);
             })
-            .catch(err => console.error('Failed to fetch users:', err));
+            .catch(err => {
+                console.error('Failed to fetch users:', err);
+                setError(err.message);
+                setUsers([]);
+            })
+            .finally(() => {
+                setLoading(false);
+            });
     }, []);
 
     useEffect(() => {
@@ -82,6 +96,15 @@ export default function Users() {
                         <option value="Guest" style={{ background: '#111', color: '#fff' }}>Guest</option>
                     </select>
                 </div>
+                {error && (
+                    <div style={{ marginBottom: '24px', padding: '16px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span>⚠️</span>
+                        <div>
+                            <p style={{ fontWeight: 'bold', marginBottom: '4px' }}>Connectivity Error</p>
+                            <p style={{ fontSize: '0.875rem' }}>{error}</p>
+                        </div>
+                    </div>
+                )}
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                         <tr style={{ color: 'var(--text-muted)', textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
