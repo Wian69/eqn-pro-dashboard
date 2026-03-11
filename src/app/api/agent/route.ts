@@ -1,48 +1,69 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-
-const AGENTS_FILE = path.join(process.cwd(), 'agents.json');
-
-function readAgents() {
-    if (!fs.existsSync(AGENTS_FILE)) return {};
-    try {
-        const content = fs.readFileSync(AGENTS_FILE, 'utf-8');
-        return content ? JSON.parse(content) : {};
-    } catch (err) {
-        console.error("Critical: Failed to read or parse agents.json", err);
-        return {};
-    }
-}
-
-function writeAgents(agents: any) {
-    const tempPath = AGENTS_FILE + '.tmp';
-    try {
-        fs.writeFileSync(tempPath, JSON.stringify(agents, null, 2));
-        fs.renameSync(tempPath, AGENTS_FILE);
-    } catch (err) {
-        console.error("Failed to write agents file:", err);
-    }
-}
+import { supabase } from '@/lib/supabase';
 
 export async function GET() {
     try {
-        const agents = readAgents();
-        return NextResponse.json(agents);
+        // Fetch all agents
+        const { data: agentsData, error: agentsError } = await supabase
+            .from('agents')
+            .select('*');
+
+        if (agentsError) throw agentsError;
+
+        // Fetch all commands to populate the history in the UI
+        const { data: commandsData, error: commandsError } = await supabase
+            .from('commands')
+            .select('*')
+            .order('timestamp', { ascending: false });
+
+        if (commandsError) throw commandsError;
+
+        // Group commands by device_id
+        const commandsByDevice: any = {};
+        commandsData?.forEach(cmd => {
+            if (!commandsByDevice[cmd.device_id]) {
+                commandsByDevice[cmd.device_id] = [];
+            }
+            commandsByDevice[cmd.device_id].push({
+                id: cmd.id,
+                command: cmd.command,
+                params: cmd.params,
+                status: cmd.status,
+                timestamp: cmd.timestamp,
+                output: cmd.output,
+                error: cmd.error,
+                completedAt: cmd.completed_at
+            });
+        });
+
+        // Map the agents to the format the UI expects
+        const agentsMap: any = {};
+        agentsData?.forEach(agent => {
+            agentsMap[agent.device_id] = {
+                deviceId: agent.device_id,
+                hostname: agent.hostname,
+                agentVersion: agent.agent_version,
+                cpuUsage: agent.cpu_usage,
+                ramUsage: agent.ram_usage,
+                hddTotal: agent.hdd_total,
+                hddFree: agent.hdd_free,
+                publicIp: agent.public_ip,
+                localIp: agent.local_ip,
+                isp: agent.isp,
+                vpnStatus: agent.vpn_status,
+                location: agent.location,
+                coords: agent.coords,
+                lastSeen: agent.last_seen,
+                status: agent.status,
+                software: agent.software || [],
+                commands: commandsByDevice[agent.device_id] || []
+            };
+        });
+
+        return NextResponse.json(agentsMap);
     } catch (error: any) {
-        console.error("GET /api/agent execution error:", error);
+        console.error("GET /api/agent supabase error:", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
-    }
-}
-
-const LATEST_AGENT_FILE = path.join(process.cwd(), 'latest_agent.json');
-
-function readLatestAgent() {
-    if (!fs.existsSync(LATEST_AGENT_FILE)) return { version: "1.0.0", engineCode: "" };
-    try {
-        return JSON.parse(fs.readFileSync(LATEST_AGENT_FILE, 'utf-8'));
-    } catch {
-        return { version: "1.0.0", engineCode: "" };
     }
 }
 
@@ -50,86 +71,87 @@ export async function POST(request: Request) {
     console.log('[API] POST /api/agent check-in received');
     try {
         const data = await request.json();
-        console.log(`[API] Agent data: ${data.hostname} (${data.deviceId})`);
-        const { deviceId, hostname, agentVersion, cpuUsage, ramUsage, hddTotal, hddFree, publicIp, localIp, isp, vpnStatus, location, coords, lastSeen } = data;
+        const { 
+            deviceId, hostname, agentVersion, cpuUsage, ramUsage, 
+            hddTotal, hddFree, publicIp, localIp, isp, 
+            vpnStatus, location, coords, lastSeen 
+        } = data;
 
-        if (!deviceId) {
-            console.warn('[API] POST /api/agent failed: Missing deviceId');
-            return NextResponse.json({ error: 'Missing deviceId' }, { status: 400 });
-        }
+        if (!deviceId) return NextResponse.json({ error: 'Missing deviceId' }, { status: 400 });
 
-        const agents = readAgents();
-        const existing = agents[deviceId] || {};
-
-        // Sticky Merge Strategy: Only overwrite if new data is valid/truthy
-        agents[deviceId] = {
-            ...existing,
-            deviceId,
-            hostname: hostname || existing.hostname,
-            agentVersion: agentVersion || existing.agentVersion,
-            cpuUsage: cpuUsage !== undefined ? cpuUsage : existing.cpuUsage,
-            ramUsage: ramUsage !== undefined ? ramUsage : existing.ramUsage,
-            hddTotal: hddTotal || existing.hddTotal,
-            hddFree: hddFree || existing.hddFree,
-            publicIp: (publicIp && publicIp !== 'Unknown') ? publicIp : existing.publicIp,
-            localIp: (localIp && localIp !== 'N/A') ? localIp : existing.localIp,
-            isp: (isp && isp !== 'Unknown') ? isp : existing.isp,
-            vpnStatus: vpnStatus || existing.vpnStatus, // Allow 'Offline' (truthy string) or specific VPN name
-            location: (location && location !== 'Unknown') ? location : existing.location,
-            coords: (coords && coords !== '') ? coords : existing.coords,
-            lastSeen: lastSeen || new Date().toISOString(),
-            status: 'online',
-            commands: existing.commands || [],
-            software: data.software ? data.software : (existing.software || [])
-        };
-
-        writeAgents(agents);
-
-        // Version Check & Auto-Update Logic
-        const latest = readLatestAgent();
-        const pendingCommands = [...(agents[deviceId].commands.filter((c: any) => c.status === 'pending'))];
-
-        if (latest.version !== agentVersion && latest.code) {
-            // Push self-update command to the END
-            pendingCommands.push({
-                id: 'auto-update-' + Date.now(),
-                command: 'selfUpdate',
-                params: {
-                    version: latest.version,
-                    code: latest.code
-                },
-                status: 'pending',
-                timestamp: new Date().toISOString()
+        // Upsert Agent Data
+        const { error: upsertError } = await supabase
+            .from('agents')
+            .upsert({
+                device_id: deviceId,
+                hostname,
+                agent_version: agentVersion,
+                cpu_usage: cpuUsage,
+                ram_usage: ramUsage,
+                hdd_total: hddTotal,
+                hdd_free: hddFree,
+                public_ip: publicIp,
+                local_ip: localIp,
+                isp,
+                vpn_status: vpnStatus,
+                location,
+                coords,
+                last_seen: lastSeen || new Date().toISOString(),
+                status: 'online',
+                software: data.software || [],
+                updated_at: new Date().toISOString()
             });
+
+        if (upsertError) {
+            console.error('[API] Supabase Upsert Error:', upsertError);
+            throw upsertError;
         }
 
-        return NextResponse.json({ success: true, commands: pendingCommands });
+        // Fetch Pending Commands
+        const { data: pendingCommands, error: cmdError } = await supabase
+            .from('commands')
+            .select('*')
+            .eq('device_id', deviceId)
+            .eq('status', 'pending');
+
+        if (cmdError) throw cmdError;
+
+        // Map to format agent expects
+        const commands = pendingCommands?.map(c => ({
+            id: c.id,
+            command: c.command,
+            params: c.params
+        })) || [];
+
+        return NextResponse.json({ success: true, commands });
     } catch (error: any) {
+        console.error('[API] POST /api/agent error:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
 
-// API to queue a command for an agent
+// API to queue a command
 export async function PUT(request: Request) {
     try {
         const { deviceId, command, params } = await request.json();
         if (!deviceId || !command) return NextResponse.json({ error: 'Missing deviceId or command' }, { status: 400 });
 
-        const agents = readAgents();
-        if (!agents[deviceId]) return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
+        const commandId = Math.random().toString(36).substr(2, 9);
+        
+        const { error } = await supabase
+            .from('commands')
+            .insert({
+                id: commandId,
+                device_id: deviceId,
+                command,
+                params,
+                status: 'pending',
+                timestamp: new Date().toISOString()
+            });
 
-        const newCommand = {
-            id: Math.random().toString(36).substr(2, 9),
-            command,
-            params,
-            status: 'pending',
-            timestamp: new Date().toISOString()
-        };
+        if (error) throw error;
 
-        agents[deviceId].commands.push(newCommand);
-        writeAgents(agents);
-
-        return NextResponse.json({ success: true, commandId: newCommand.id });
+        return NextResponse.json({ success: true, commandId });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
