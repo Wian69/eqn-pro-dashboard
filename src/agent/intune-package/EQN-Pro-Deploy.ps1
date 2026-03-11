@@ -121,9 +121,7 @@ function Refresh-Watchdog {
         if ($null -eq $currentPath) { $currentPath = Join-Path $TargetDir "agent-engine.ps1" }
         $Action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$currentPath`""
         $Trigger1 = New-ScheduledTaskTrigger -AtStartup
-        $Trigger2 = New-ScheduledTaskTrigger -Daily -At (Get-Date).ToString("HH:mm")
-        $Trigger2.RepetitionInterval = (New-TimeSpan -Minutes 1)
-        $Trigger2.RepetitionDuration = [TimeSpan]::MaxValue
+        $Trigger2 = New-ScheduledTaskTrigger -Once -At (Get-Date).ToString("HH:mm") -RepetitionInterval (New-TimeSpan -Minutes 1)
         $Settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1)
         
         Unregister-ScheduledTask -TaskName "EQNProLiveAgent" -Confirm:$false -ErrorAction SilentlyContinue
@@ -285,9 +283,7 @@ while ($true) {
     # 5. Create Scheduled Task (Persistence)
     $Action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$TargetPath`""
     $Trigger1 = New-ScheduledTaskTrigger -AtStartup
-    $Trigger2 = New-ScheduledTaskTrigger -Daily -At (Get-Date).ToString("HH:mm")
-    $Trigger2.RepetitionInterval = (New-TimeSpan -Minutes 1)
-    $Trigger2.RepetitionDuration = [TimeSpan]::MaxValue
+    $Trigger2 = New-ScheduledTaskTrigger -Once -At (Get-Date).ToString("HH:mm") -RepetitionInterval (New-TimeSpan -Minutes 1)
     $Settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1)
     
     try {
