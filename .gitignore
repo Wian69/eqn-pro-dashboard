@@ -38,4 +38,7 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
+# agents
+agents.json
+agents.json.tmp
+latest_agent.json
