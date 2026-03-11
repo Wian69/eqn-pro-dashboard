@@ -14,13 +14,21 @@ export default function Devices() {
 
     useEffect(() => {
         fetch('/api/devices')
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error(`API Error: ${res.status}`);
+                return res.json();
+            })
             .then(data => {
                 setDevices(data.devices || []);
                 setFilteredDevices(data.devices || []);
-                setLoading(false);
             })
-            .catch(err => console.error('Failed to fetch devices:', err));
+            .catch(err => {
+                console.error('Failed to fetch devices:', err);
+                setDevices([]);
+            })
+            .finally(() => {
+                setLoading(false);
+            });
     }, []);
 
     useEffect(() => {

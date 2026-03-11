@@ -5,27 +5,31 @@ export async function GET(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const { id: deviceIdOrId } = await params;
+    console.log(`[API] GET /api/devices/${deviceIdOrId} initiated...`);
     try {
         const client = getGraphClient();
-        const { id: deviceIdOrId } = await params;
 
         // 1. Try direct ID lookup (Optimistic)
         try {
+            console.log(`[API] Attempting direct ID lookup for ${deviceIdOrId}...`);
             const device = await client.api(`/deviceManagement/managedDevices/${deviceIdOrId}`).get();
             return NextResponse.json(device);
         } catch (e) {
             // 2. Try Serial Number Lookup (Fallback)
+            console.log(`[API] ID lookup failed, attempting serial number lookup for ${deviceIdOrId}...`);
             const searchRes = await client.api('/deviceManagement/managedDevices')
                 .filter(`serialNumber eq '${deviceIdOrId}'`)
                 .get();
 
             if (searchRes.value && searchRes.value.length > 0) {
+                console.log(`[API] Found device by serial number.`);
                 return NextResponse.json(searchRes.value[0]);
             }
             throw new Error(`Device not found with ID or Serial: ${deviceIdOrId}`);
         }
     } catch (error: any) {
-        console.error('Graph API Error (Device Details):', error);
+        console.error(`[API] Graph API Error (Device ${deviceIdOrId}):`, error.message);
         return NextResponse.json({ error: error.message }, { status: 404 });
     }
 }

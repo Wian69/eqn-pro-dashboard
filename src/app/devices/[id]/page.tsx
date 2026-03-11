@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
     Terminal, Info, History, ArrowLeft, RefreshCw, CheckCircle2,
@@ -40,39 +40,58 @@ export default function DeviceDetails() {
         return new Date(timestamp).toLocaleTimeString();
     };
 
+    const isFetching = useRef(false);
+    const deviceRef = useRef<any>(null);
+
     useEffect(() => {
         const fetchData = async () => {
+            if (isFetching.current) return;
+            isFetching.current = true;
             try {
                 const res = await fetch(`/api/devices/${id}`);
+                if (!res.ok) throw new Error(`Failed to fetch device: ${res.status}`);
                 const data = await res.json();
                 setDevice(data);
+                deviceRef.current = data;
 
                 const agentsRes = await fetch('/api/agent');
+                if (!agentsRes.ok) throw new Error(`Failed to fetch agents: ${agentsRes.status}`);
                 const agents = await agentsRes.json();
                 const matchedAgent = Object.values(agents).find((a: any) =>
                     a.deviceId === data.serialNumber || a.hostname === data.deviceName
                 );
                 if (matchedAgent) setAgentData(matchedAgent);
-                setLoading(false);
             } catch (err) {
-                console.error('Failed to fetch data:', err);
+                console.error('Initial data fetch failed:', err);
+            } finally {
                 setLoading(false);
+                isFetching.current = false;
             }
         };
 
         fetchData();
+
         const interval = setInterval(async () => {
-            if (device) {
+            const currentDevice = deviceRef.current;
+            if (!currentDevice || isFetching.current) return;
+            isFetching.current = true;
+            try {
                 const res = await fetch('/api/agent');
+                if (!res.ok) throw new Error(`Agent API returned ${res.status}`);
                 const agents = await res.json();
                 const matchedAgent = Object.values(agents).find((a: any) =>
-                    a.deviceId === device.serialNumber || a.hostname === device.deviceName
+                    a.deviceId === currentDevice.serialNumber || a.hostname === currentDevice.deviceName
                 );
                 if (matchedAgent) setAgentData(matchedAgent);
+            } catch (err) {
+                console.warn('Periodic agent sync failed (will retry):', err);
+            } finally {
+                isFetching.current = false;
             }
         }, 5000);
+
         return () => clearInterval(interval);
-    }, [id, device?.serialNumber]);
+    }, [id]);
 
     useEffect(() => {
         if (agentData?.commands) {

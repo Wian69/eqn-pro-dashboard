@@ -7,8 +7,10 @@ const AGENTS_FILE = path.join(process.cwd(), 'agents.json');
 function readAgents() {
     if (!fs.existsSync(AGENTS_FILE)) return {};
     try {
-        return JSON.parse(fs.readFileSync(AGENTS_FILE, 'utf-8'));
-    } catch {
+        const content = fs.readFileSync(AGENTS_FILE, 'utf-8');
+        return content ? JSON.parse(content) : {};
+    } catch (err) {
+        console.error("Critical: Failed to read or parse agents.json", err);
         return {};
     }
 }
@@ -24,7 +26,13 @@ function writeAgents(agents: any) {
 }
 
 export async function GET() {
-    return NextResponse.json(readAgents());
+    try {
+        const agents = readAgents();
+        return NextResponse.json(agents);
+    } catch (error: any) {
+        console.error("GET /api/agent execution error:", error);
+        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    }
 }
 
 const LATEST_AGENT_FILE = path.join(process.cwd(), 'latest_agent.json');
@@ -39,11 +47,16 @@ function readLatestAgent() {
 }
 
 export async function POST(request: Request) {
+    console.log('[API] POST /api/agent check-in received');
     try {
         const data = await request.json();
+        console.log(`[API] Agent data: ${data.hostname} (${data.deviceId})`);
         const { deviceId, hostname, agentVersion, cpuUsage, ramUsage, hddTotal, hddFree, publicIp, localIp, isp, vpnStatus, location, coords, lastSeen } = data;
 
-        if (!deviceId) return NextResponse.json({ error: 'Missing deviceId' }, { status: 400 });
+        if (!deviceId) {
+            console.warn('[API] POST /api/agent failed: Missing deviceId');
+            return NextResponse.json({ error: 'Missing deviceId' }, { status: 400 });
+        }
 
         const agents = readAgents();
         const existing = agents[deviceId] || {};

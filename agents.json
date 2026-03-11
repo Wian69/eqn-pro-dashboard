@@ -2,8 +2,8 @@
   "79HVW14": {
     "deviceId": "79HVW14",
     "hostname": "EQNCSLT016",
-    "cpuUsage": 45,
-    "ramUsage": 83.9,
+    "cpuUsage": 35,
+    "ramUsage": 89.4,
     "hddTotal": 474,
     "hddFree": 81.9,
     "publicIp": "169.0.122.36",
@@ -11,7 +11,7 @@
     "vpnStatus": "Offline",
     "location": "Cape Town, Western Cape, South Africa",
     "coords": "-33.914, 18.4129",
-    "lastSeen": "2026-03-11T12:05:26Z",
+    "lastSeen": "2026-03-11T12:23:07Z",
     "status": "online",
     "commands": [
       {
