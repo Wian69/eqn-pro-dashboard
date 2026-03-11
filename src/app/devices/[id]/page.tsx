@@ -15,6 +15,7 @@ export default function DeviceDetails() {
     const [device, setDevice] = useState<any>(null);
     const [agentData, setAgentData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
     const [customScript, setCustomScript] = useState('');
@@ -49,7 +50,10 @@ export default function DeviceDetails() {
             isFetching.current = true;
             try {
                 const res = await fetch(`/api/devices/${id}`);
-                if (!res.ok) throw new Error(`Failed to fetch device: ${res.status}`);
+                if (!res.ok) {
+                    const errorData = await res.json().catch(() => ({}));
+                    throw new Error(errorData.details || errorData.error || `Failed to fetch device: ${res.status}`);
+                }
                 const data = await res.json();
                 setDevice(data);
                 deviceRef.current = data;
@@ -61,8 +65,9 @@ export default function DeviceDetails() {
                     a.deviceId === data.serialNumber || a.hostname === data.deviceName
                 );
                 if (matchedAgent) setAgentData(matchedAgent);
-            } catch (err) {
+            } catch (err: any) {
                 console.error('Initial data fetch failed:', err);
+                setError(err.message);
             } finally {
                 setLoading(false);
                 isFetching.current = false;
