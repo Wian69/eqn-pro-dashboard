@@ -158,7 +158,13 @@ export default function Users() {
                                     : 'Never or Unknown';
 
                                 return (
-                                    <tr key={user.id || i} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.2s', cursor: 'default' }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                                    <tr 
+                                        key={user.id || i} 
+                                        onClick={() => user.id ? window.location.href = `/users/${user.id}` : null}
+                                        style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.2s', cursor: user.id ? 'pointer' : 'default' }} 
+                                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} 
+                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                    >
                                         <td style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                                             <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', flexShrink: 0 }}>
                                                 {user.displayName?.[0] || 'U'}
