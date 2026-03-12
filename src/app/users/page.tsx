@@ -87,8 +87,13 @@ export default function Users() {
         if (mail.includes('@partner.eqncs.com') || upn.includes('@partner.eqncs.com')) {
             return 'Partner.EQNCS.com';
         }
+        
+        // 3. Check for users without an office location
+        if (!user.officeLocation) {
+            return 'Other';
+        }
 
-        // 3. Normal Region Detection
+        // 4. Normal Region Detection
         const textToSearch = `${user.department || ''} ${user.state || ''} ${user.officeLocation || ''}`.toLowerCase();
         for (const region of regions) {
             if (textToSearch.includes(region.toLowerCase().replace(' region', ''))) {

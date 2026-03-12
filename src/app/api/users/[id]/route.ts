@@ -17,7 +17,7 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
         try {
             const userResponse = await client.api(`/users/${id}`)
                 .version('beta')
-                .select('id,displayName,givenName,surname,mail,userPrincipalName,userType,jobTitle,department,officeLocation,businessPhones,mobilePhone,streetAddress,city,state,postalCode,country,accountEnabled,createdDateTime,assignedLicenses,signInActivity')
+                .select('id,displayName,givenName,surname,mail,userPrincipalName,userType,jobTitle,department,officeLocation,businessPhones,mobilePhone,streetAddress,city,state,postalCode,country,accountEnabled,createdDateTime,assignedLicenses,signInActivity,usageLocation,preferredLanguage')
                 .get();
             userProfile = userResponse;
         } catch (initialError: any) {
@@ -51,6 +51,56 @@ export async function GET(request: Request, props: { params: Promise<{ id: strin
 
     } catch (error: any) {
         console.error('Graph API Error (User Details):', error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+}
+
+export async function PATCH(request: Request, props: { params: Promise<{ id: string }> }) {
+    try {
+        const params = await props.params;
+        const id = params.id;
+        if (!id) {
+            return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+        }
+
+        const body = await request.json();
+        
+        // Allowed fields for update in Entra ID
+        const allowedFields = [
+            'givenName', 'surname', 'displayName', 'jobTitle', 
+            'department', 'officeLocation', 'mobilePhone', 
+            'streetAddress', 'city', 'state', 'postalCode', 'country',
+            'usageLocation', 'preferredLanguage'
+        ];
+        
+        const updateData: any = {};
+        for (const key of allowedFields) {
+            if (body[key] !== undefined) {
+                updateData[key] = body[key] === '' ? null : body[key];
+            }
+        }
+        
+        if (body.businessPhones !== undefined) {
+            if (Array.isArray(body.businessPhones)) {
+                updateData.businessPhones = body.businessPhones;
+            } else if (typeof body.businessPhones === 'string') {
+                updateData.businessPhones = body.businessPhones ? [body.businessPhones] : [];
+            }
+        }
+
+        if (Object.keys(updateData).length === 0) {
+            return NextResponse.json({ error: 'No valid fields provided for update' }, { status: 400 });
+        }
+
+        const client = getGraphClient();
+        
+        await client.api(`/users/${id}`)
+            .version('v1.0')
+            .patch(updateData);
+            
+        return NextResponse.json({ success: true, updatedFields: Object.keys(updateData) });
+    } catch (error: any) {
+        console.error('Graph API Error (Update User):', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
