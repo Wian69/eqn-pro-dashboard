@@ -17,6 +17,7 @@ export async function GET(request: Request, props: { params: Promise<{ userId: s
             const response = await client.api(`/users/${userId}/mailFolders/SentItems/messages`)
                 .filter('isDraft eq false')
                 .select('id,subject,toRecipients,ccRecipients,sentDateTime,hasAttachments')
+                .expand('attachments($select=name)')
                 .top(50) // Adjust as needed
                 .get();
                 

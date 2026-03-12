@@ -320,8 +320,22 @@ export default function MailTracker() {
                                                         </div>
                                                     )}
                                                 </td>
-                                                <td style={{ padding: '12px', verticalAlign: 'top', textAlign: 'center' }}>
-                                                    {mail.hasAttachments ? '📎' : ''}
+                                                <td style={{ padding: '12px', verticalAlign: 'top' }}>
+                                                    {mail.hasAttachments ? (
+                                                        mail.attachments && mail.attachments.length > 0 ? (
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                                {mail.attachments.map((att: any, idx: number) => (
+                                                                    <span key={idx} style={{ fontSize: '0.8rem', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px', whiteSpace: 'nowrap' }}>
+                                                                        📎 {att.name || 'Attachment'}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <span style={{ fontSize: '1.2rem' }}>📎</span>
+                                                        )
+                                                    ) : (
+                                                        <span style={{ color: 'var(--text-muted)' }}>-</span>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))}

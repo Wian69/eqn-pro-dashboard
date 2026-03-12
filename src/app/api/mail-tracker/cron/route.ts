@@ -64,6 +64,13 @@ export async function GET(request: Request) {
         `;
 
         let totalEmailsTracked = 0;
+        let csvContent = 'Date,Time,Sender,Subject,To,CC,Attachments\n';
+        
+        const escapeCsv = (str: string) => {
+            if (!str) return '""';
+            const cleanStr = String(str).replace(/"/g, '""');
+            return `"${cleanStr}"`;
+        };
 
         for (const user of validUsers) {
             const userEmail = user.mail || user.userPrincipalName;
@@ -74,6 +81,7 @@ export async function GET(request: Request) {
                 const messagesResponse = await client.api(`/users/${user.id}/mailFolders/SentItems/messages`)
                     .filter(`isDraft eq false and sentDateTime ge ${filterDateString}`)
                     .select('subject,toRecipients,ccRecipients,sentDateTime,hasAttachments')
+                    .expand('attachments($select=name)')
                     .top(100)
                     .orderby('sentDateTime desc')
                     .get();
@@ -115,18 +123,30 @@ export async function GET(request: Request) {
                          if (!toString) toString = '(No To Recipients)';
                          
                          const ccString = formatRecipients(msg.ccRecipients);
-                         if (ccString) toString += `<br/><small style="color:gray;">CC: ${ccString}</small>`;
+                         let ccHtml = '';
+                         if (ccString) ccHtml = `<br/><small style="color:gray;">CC: ${ccString}</small>`;
                          
-                         const attachmentStr = msg.hasAttachments ? 'Yes' : 'No';
+                         let attachmentNames = '';
+                         if (msg.hasAttachments && msg.attachments?.length > 0) {
+                             attachmentNames = msg.attachments.map((a: any) => a.name).join('; ');
+                         } else if (msg.hasAttachments) {
+                             attachmentNames = 'Yes (Hidden)';
+                         } else {
+                             attachmentNames = 'No';
+                         }
                          
                          reportHtml += `
                              <tr>
                                  <td>${time}</td>
                                  <td>${subject}</td>
-                                 <td>${toString}</td>
-                                 <td style="text-align:center;">${attachmentStr}</td>
+                                 <td>${toString}${ccHtml}</td>
+                                 <td style="text-align:center;">${attachmentNames}</td>
                              </tr>
                          `;
+                         
+                         // Append to CSV
+                         const dateStr = new Date(msg.sentDateTime).toLocaleDateString();
+                         csvContent += `${escapeCsv(dateStr)},${escapeCsv(time)},${escapeCsv(userEmail)},${escapeCsv(subject)},${escapeCsv(toString)},${escapeCsv(ccString)},${escapeCsv(attachmentNames)}\n`;
                      }
                      reportHtml += `</tbody></table><br/>`;
                 }
@@ -147,7 +167,7 @@ export async function GET(request: Request) {
              return NextResponse.json({ error: 'Mail distribution configuration missing', html: reportHtml }, { status: 500 });
         }
 
-        const mailMessage = {
+        const mailMessage: any = {
             message: {
                 subject: `EQN Pro - Daily Mail Tracker Report (${now.toLocaleDateString()})`,
                 body: {
@@ -160,6 +180,18 @@ export async function GET(request: Request) {
             },
             saveToSentItems: 'false'
         };
+
+        if (totalEmailsTracked > 0) {
+            const csvBuffer = Buffer.from(csvContent, 'utf-8');
+            mailMessage.message.attachments = [
+                {
+                    "@odata.type": "#microsoft.graph.fileAttachment",
+                    "name": `EQN_Pro_Daily_Mail_Log_${now.toISOString().split('T')[0]}.csv`,
+                    "contentType": "text/csv",
+                    "contentBytes": csvBuffer.toString('base64')
+                }
+            ];
+        }
 
         try {
             await client.api(`/users/${sendFrom}/sendMail`).post(mailMessage);
