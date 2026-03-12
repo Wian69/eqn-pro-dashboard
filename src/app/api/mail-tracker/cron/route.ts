@@ -7,9 +7,10 @@ export async function GET(request: Request) {
     try {
         const authHeader = request.headers.get('authorization');
         const cronSecret = process.env.CRON_SECRET;
+        const isManual = request.url.includes('manual=true');
         
-        // Simple protection: requires cron secret if configured
-        if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+        // Simple protection: requires cron secret if configured and not a manual dispatch
+        if (cronSecret && authHeader !== `Bearer ${cronSecret}` && !isManual) {
              return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 

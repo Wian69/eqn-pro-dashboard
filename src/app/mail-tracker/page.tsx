@@ -31,6 +31,7 @@ export default function MailTracker() {
     const [userMails, setUserMails] = useState<any[]>([]);
     const [loadingMails, setLoadingMails] = useState(false);
     const [mailError, setMailError] = useState<string | null>(null);
+    const [sendingCron, setSendingCron] = useState(false);
 
     const fetchTrackedUsers = async () => {
         setLoadingTracked(true);
@@ -173,6 +174,22 @@ export default function MailTracker() {
         return new Date(dateString) < new Date();
     };
 
+    const handleManualDispatch = async () => {
+        setSendingCron(true);
+        try {
+            const res = await fetch('/api/mail-tracker/cron?manual=true');
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.error || 'Failed to dispatch email');
+            }
+            alert(`Success! Email dispatched containing ${data.emailsTracked} tracked emails.`);
+        } catch (err: any) {
+            alert(err.message);
+        } finally {
+            setSendingCron(false);
+        }
+    };
+
     return (
         <div>
             <header style={{ marginBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -181,12 +198,21 @@ export default function MailTracker() {
                     <p style={{ color: 'var(--text-muted)' }}>Monitor and automate daily reports for sent emails of specific users.</p>
                 </div>
                 {!isAdding && (
-                    <button 
-                        onClick={() => setIsAdding(true)} 
-                        style={{ padding: '8px 24px', borderRadius: '8px', background: 'var(--accent)', color: '#000', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}
-                    >
-                        + Track New User
-                    </button>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        <button 
+                            onClick={handleManualDispatch} 
+                            style={{ padding: '8px 24px', borderRadius: '8px', background: 'transparent', border: '1px solid var(--accent)', color: 'var(--accent)', fontWeight: 'bold', cursor: 'pointer' }}
+                            disabled={sendingCron}
+                        >
+                            {sendingCron ? 'Sending...' : 'Send Report Now'}
+                        </button>
+                        <button 
+                            onClick={() => setIsAdding(true)} 
+                            style={{ padding: '8px 24px', borderRadius: '8px', background: 'var(--accent)', color: '#000', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}
+                        >
+                            + Track New User
+                        </button>
+                    </div>
                 )}
             </header>
 
