@@ -75,31 +75,26 @@ export default function Users() {
     
     // Updated getRegion to handle new requirements
     const getRegion = (user: any) => {
-        // 1. Check for No License users
+        // 1. Check for No License users (Dedicated Category as requested)
         const hasLicense = user.assignedLicenses && user.assignedLicenses.length > 0;
         if (!hasLicense) {
             return 'No License Users';
         }
 
-        // 2. Check for Partner.EQNCS.com domain
-        const mail = (user.mail || '').toLowerCase();
-        const upn = (user.userPrincipalName || '').toLowerCase();
-        if (mail.includes('@partner.eqncs.com') || upn.includes('@partner.eqncs.com')) {
-            return 'Partner.EQNCS.com';
-        }
-        
-        // 3. Check for users without an office location
+        // 2. Check for users without an office location (Move to Other as requested)
         if (!user.officeLocation) {
             return 'Other';
         }
 
-        // 4. Normal Region Detection
-        const textToSearch = `${user.department || ''} ${user.state || ''} ${user.officeLocation || ''}`.toLowerCase();
+        // 3. Region Detection strictly based on officeLocation
+        const office = user.officeLocation.toLowerCase();
         for (const region of regions) {
-            if (textToSearch.includes(region.toLowerCase().replace(' region', ''))) {
+            const regionKeyword = region.toLowerCase().replace(' region', '');
+            if (office.includes(regionKeyword)) {
                 return region;
             }
         }
+
         return 'Other';
     };
 
@@ -108,7 +103,6 @@ export default function Users() {
         'Southern Region': [],
         'Eastern Region': [],
         'Northern Region': [],
-        'Partner.EQNCS.com': [],
         'No License Users': [],
         'Other': []
     };
@@ -174,7 +168,16 @@ export default function Users() {
                                             <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', flexShrink: 0 }}>
                                                 {user.displayName?.[0] || 'U'}
                                             </div>
-                                            {user.displayName}
+                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    {user.displayName}
+                                                    {(user.mail?.toLowerCase().includes('@partner.eqncs.com') || user.userPrincipalName?.toLowerCase().includes('@partner.eqncs.com')) && (
+                                                        <span style={{ fontSize: '0.65rem', background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
+                                                            Partner.EQNCS.com
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </td>
                                         <td style={{ padding: '16px', wordBreak: 'break-all' }}>{user.mail || user.userPrincipalName}</td>
                                         <td style={{ padding: '16px' }}>{user.officeLocation || 'Unassigned'}</td>
@@ -243,7 +246,6 @@ export default function Users() {
                         {renderUserTable(groupedUsers['Northern Region'], 'Northern Region')}
                         {renderUserTable(groupedUsers['Eastern Region'], 'Eastern Region')}
                         {renderUserTable(groupedUsers['Southern Region'], 'Southern Region')}
-                        {renderUserTable(groupedUsers['Partner.EQNCS.com'], 'Partner.EQNCS.com', 'Users from the Partner.EQNCS.com domain')}
                         {renderUserTable(groupedUsers['Other'], 'Other (Unassigned or unknown)')}
                         {renderUserTable(groupedUsers['No License Users'], 'No License Users', 'Users that do not have any Microsoft 365 licensing assigned')}
                     </>
