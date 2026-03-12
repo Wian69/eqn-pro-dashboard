@@ -15,7 +15,40 @@ export async function GET(request: Request) {
         }
 
         const client = getGraphClient();
-        console.log('[CRON] Starting daily mail tracker report...');
+        console.log('[CRON] Starting mail tracker report check...');
+        const now = new Date();
+        const sendFrom = process.env.MAIL_TRACKER_SEND_FROM;
+        const deliverTo = process.env.MAIL_TRACKER_DELIVER_TO;
+
+        if (!sendFrom || !deliverTo) {
+             console.error('[CRON] Missing MAIL_TRACKER_SEND_FROM or MAIL_TRACKER_DELIVER_TO in environment.');
+             return NextResponse.json({ error: 'Mail distribution configuration missing' }, { status: 500 });
+        }
+
+        // 0. Check the preferred schedule
+        let scheduleHour = 8; // Default 8 AM UTC
+        try {
+            const EXTENSION_NAME_SETTINGS = 'com.eqncs.mailtracker.schedule';
+            const userConf = await client.api(`/users/${sendFrom}`)
+                .select('id')
+                .expand(`extensions($filter=id eq '${EXTENSION_NAME_SETTINGS}')`)
+                .get();
+                
+            if (userConf.extensions && userConf.extensions.length > 0) {
+                scheduleHour = parseInt(userConf.extensions[0].scheduleHour);
+            }
+        } catch (confErr: any) {
+            console.warn('[CRON] Could not fetch settings for sender, defaulting to 8 AM UTC', confErr.message);
+        }
+
+        const currentHourUtc = now.getUTCHours();
+        
+        if (!isManual && currentHourUtc !== scheduleHour) {
+            console.log(`[CRON] Current hour is ${currentHourUtc} UTC, but configured for ${scheduleHour} UTC. Skipping.`);
+            return NextResponse.json({ message: `Skipping. Configured for ${scheduleHour} UTC` });
+        }
+        
+        console.log(`[CRON] Time match! Executing report generation for ${scheduleHour} UTC.`);
 
         // 1. Fetch tracked users
         const EXTENSION_NAME = 'com.eqncs.mailtracker';
@@ -39,7 +72,6 @@ export async function GET(request: Request) {
         console.log(`[CRON] Found ${trackedUsers.length} total users with tracking extension.`);
 
         // 2. Filter unexpired users
-        const now = new Date();
         const validUsers = trackedUsers.filter(u => {
             const exp = u.extensions[0].expiresAt;
             if (!exp) return true; // Unlimited
@@ -160,13 +192,6 @@ export async function GET(request: Request) {
         reportHtml += `<hr /><p><em>Total emails logged across tracked users: ${totalEmailsTracked}</em></p>`;
 
         // 4. Send the report via Graph API
-        const sendFrom = process.env.MAIL_TRACKER_SEND_FROM;
-        const deliverTo = process.env.MAIL_TRACKER_DELIVER_TO;
-
-        if (!sendFrom || !deliverTo) {
-             console.error('[CRON] Missing MAIL_TRACKER_SEND_FROM or MAIL_TRACKER_DELIVER_TO in environment.');
-             return NextResponse.json({ error: 'Mail distribution configuration missing', html: reportHtml }, { status: 500 });
-        }
 
         const mailMessage: any = {
             message: {

@@ -25,6 +25,11 @@ export default function MailTracker() {
     const [trackingDuration, setTrackingDuration] = useState('7');
     const [savingTracking, setSavingTracking] = useState(false);
 
+    // Settings State
+    const [showSettings, setShowSettings] = useState(false);
+    const [scheduleHour, setScheduleHour] = useState('08');
+    const [savingSettings, setSavingSettings] = useState(false);
+
     // View Mail Logs State
     const [viewingUser, setViewingUser] = useState<any | null>(null);
     const [viewingDays, setViewingDays] = useState('1');
@@ -47,6 +52,20 @@ export default function MailTracker() {
         }
     };
 
+    const fetchSettings = async () => {
+        try {
+            const res = await fetch('/api/mail-tracker/settings');
+            if (res.ok) {
+                const data = await res.json();
+                if (data.scheduleHour) {
+                    setScheduleHour(data.scheduleHour.toString().padStart(2, '0'));
+                }
+            }
+        } catch (err) {
+            console.error('Failed to fetch settings', err);
+        }
+    };
+
     useEffect(() => {
         // Fetch all active users for the dropdown
         fetch('/api/users')
@@ -62,6 +81,7 @@ export default function MailTracker() {
             .finally(() => setLoadingUsers(false));
 
         fetchTrackedUsers();
+        fetchSettings();
     }, []);
 
     const handleStartTracking = async () => {
@@ -190,6 +210,24 @@ export default function MailTracker() {
         }
     };
 
+    const handleSaveSettings = async () => {
+        setSavingSettings(true);
+        try {
+            const res = await fetch('/api/mail-tracker/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ scheduleHour: parseInt(scheduleHour) })
+            });
+            if (!res.ok) throw new Error('Failed to save settings');
+            alert('Schedule saved successfully!');
+            setShowSettings(false);
+        } catch (err: any) {
+            alert(err.message);
+        } finally {
+            setSavingSettings(false);
+        }
+    };
+
     return (
         <div>
             <header style={{ marginBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -197,8 +235,14 @@ export default function MailTracker() {
                     <h1 style={{ fontSize: '2rem', marginBottom: '8px' }}>Mail Tracker</h1>
                     <p style={{ color: 'var(--text-muted)' }}>Monitor and automate daily reports for sent emails of specific users.</p>
                 </div>
-                {!isAdding && (
+                {!isAdding && !showSettings && (
                     <div style={{ display: 'flex', gap: '12px' }}>
+                        <button 
+                            onClick={() => setShowSettings(true)} 
+                            style={{ padding: '8px 24px', borderRadius: '8px', background: 'transparent', border: '1px solid var(--border)', color: '#fff', cursor: 'pointer' }}
+                        >
+                            ⚙️ Settings
+                        </button>
                         <button 
                             onClick={handleManualDispatch} 
                             style={{ padding: '8px 24px', borderRadius: '8px', background: 'transparent', border: '1px solid var(--accent)', color: 'var(--accent)', fontWeight: 'bold', cursor: 'pointer' }}
@@ -219,6 +263,47 @@ export default function MailTracker() {
             {error && (
                 <div style={{ marginBottom: '24px', padding: '16px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', color: '#ef4444' }}>
                     Error: {error}
+                </div>
+            )}
+
+            {/* Settings Form */}
+            {showSettings && (
+                <div className="glass-panel" style={{ marginBottom: '32px', padding: '24px', border: '1px solid var(--border)' }}>
+                    <h2 style={{ fontSize: '1.25rem', marginBottom: '16px', color: '#fff' }}>Automated Report Settings</h2>
+                    <p style={{ color: 'var(--text-muted)', marginBottom: '24px', fontSize: '0.875rem' }}>
+                        Configure exactly what hour the daily email digest should be sent out. Make sure your Vercel sender variables are configured!
+                    </p>
+                    <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                        <div style={{ minWidth: '200px' }}>
+                            <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '8px' }}>Daily Delivery Time (UTC)</label>
+                            <select 
+                                value={scheduleHour} 
+                                onChange={e => setScheduleHour(e.target.value)}
+                                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', background: '#111', color: '#fff' }}
+                            >
+                                {Array.from({ length: 24 }).map((_, i) => {
+                                    const hour = i.toString().padStart(2, '0');
+                                    return <option key={hour} value={hour}>{hour}:00 UTC</option>;
+                                })}
+                            </select>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <button 
+                                onClick={() => setShowSettings(false)} 
+                                style={{ padding: '12px 16px', borderRadius: '8px', border: '1px solid var(--border)', background: 'transparent', color: '#fff', cursor: 'pointer' }}
+                                disabled={savingSettings}
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={handleSaveSettings} 
+                                style={{ padding: '12px 24px', borderRadius: '8px', background: 'var(--accent)', color: '#000', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}
+                                disabled={savingSettings}
+                            >
+                                {savingSettings ? 'Saving...' : 'Save Settings'}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 
