@@ -11,14 +11,26 @@ export async function GET(request: Request, props: { params: Promise<{ userId: s
 
         const client = getGraphClient();
 
+        const url = new URL(request.url);
+        const daysParam = url.searchParams.get('days') || '1';
+        const days = parseInt(daysParam);
+
+        let filterString = 'isDraft eq false';
+        if (!isNaN(days) && days > 0) {
+            const date = new Date();
+            date.setDate(date.getDate() - days);
+            filterString += ` and sentDateTime ge ${date.toISOString()}`;
+        }
+
         // Fetch sent items for the user
         let messages = [];
         try {
             const response = await client.api(`/users/${userId}/mailFolders/SentItems/messages`)
-                .filter('isDraft eq false')
+                .filter(filterString)
                 .select('id,subject,toRecipients,ccRecipients,sentDateTime,hasAttachments')
                 .expand('attachments($select=name)')
-                .top(50) // Adjust as needed
+                .orderby('sentDateTime desc')
+                .top(100)
                 .get();
                 
             messages = response.value;

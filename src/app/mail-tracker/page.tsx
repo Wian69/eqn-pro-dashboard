@@ -27,6 +27,7 @@ export default function MailTracker() {
 
     // View Mail Logs State
     const [viewingUser, setViewingUser] = useState<any | null>(null);
+    const [viewingDays, setViewingDays] = useState('1');
     const [userMails, setUserMails] = useState<any[]>([]);
     const [loadingMails, setLoadingMails] = useState(false);
     const [mailError, setMailError] = useState<string | null>(null);
@@ -109,14 +110,15 @@ export default function MailTracker() {
         }
     };
 
-    const viewUserMails = async (user: any) => {
+    const viewUserMails = async (user: any, days: string = viewingDays) => {
         setViewingUser(user);
+        setViewingDays(days);
         setLoadingMails(true);
         setMailError(null);
         setUserMails([]);
         
         try {
-            const res = await fetch(`/api/mail-tracker/${user.id}`);
+            const res = await fetch(`/api/mail-tracker/${user.id}?days=${days}`);
             const data = await res.json();
             
             if (!res.ok) {
@@ -129,6 +131,41 @@ export default function MailTracker() {
         } finally {
             setLoadingMails(false);
         }
+    };
+
+    const handleDaysChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const days = e.target.value;
+        if (viewingUser) {
+            viewUserMails(viewingUser, days);
+        } else {
+            setViewingDays(days);
+        }
+    };
+
+    const exportToCsv = () => {
+        if (!userMails || userMails.length === 0) return;
+        
+        let csv = 'Date,Time,Subject,To,CC,Attachments\n';
+        userMails.forEach(mail => {
+            const date = new Date(mail.sentDateTime).toLocaleDateString();
+            const time = new Date(mail.sentDateTime).toLocaleTimeString();
+            const subject = String(mail.subject || '(No Subject)').replace(/"/g, '""');
+            const to = formatRecipients(mail.toRecipients).replace(/"/g, '""');
+            const cc = formatRecipients(mail.ccRecipients).replace(/"/g, '""');
+            const atts = mail.hasAttachments ? (mail.attachments?.map((a:any)=>a.name).join('; ').replace(/"/g, '""') || 'Yes') : 'No';
+            
+            csv += `"${date}","${time}","${subject}","${to}","${cc}","${atts}"\n`;
+        });
+        
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.setAttribute('hidden', '');
+        a.setAttribute('href', url);
+        a.setAttribute('download', `MailTracker_${viewingUser?.displayName || 'User'}_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
     };
 
     const isExpired = (dateString: string | null) => {
@@ -253,7 +290,7 @@ export default function MailTracker() {
                                                 <td style={{ padding: '12px', textAlign: 'right' }}>
                                                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                                         <button 
-                                                            onClick={() => viewUserMails(user)}
+                                                            onClick={() => viewUserMails(user, viewingDays)}
                                                             style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid var(--accent)', background: viewingUser?.id === user.id ? 'var(--accent)' : 'transparent', color: viewingUser?.id === user.id ? '#000' : 'var(--accent)', cursor: 'pointer', fontSize: '0.875rem' }}
                                                         >
                                                             View Sent Mails
@@ -278,9 +315,30 @@ export default function MailTracker() {
                 {/* Mail Viewer Panel */}
                 {viewingUser && (
                     <div className="glass-panel" style={{ padding: '24px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                        <h2 style={{ fontSize: '1.25rem', marginBottom: '16px', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <h2 style={{ fontSize: '1.25rem', marginBottom: '16px', color: '#fff', display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span>Sent Items: {viewingUser.displayName}</span>
-                            <button onClick={() => setViewingUser(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.5rem' }}>×</button>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                <select 
+                                    value={viewingDays} 
+                                    onChange={handleDaysChange}
+                                    style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: '#111', color: '#fff', fontSize: '0.875rem' }}
+                                    disabled={loadingMails}
+                                >
+                                    <option value="1">Last 24 Hours</option>
+                                    <option value="7">Last 7 Days</option>
+                                    <option value="30">Last 30 Days</option>
+                                </select>
+                                
+                                <button 
+                                    onClick={exportToCsv}
+                                    style={{ padding: '6px 12px', borderRadius: '6px', background: 'var(--accent)', color: '#000', fontWeight: 'bold', border: 'none', cursor: 'pointer', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                    disabled={loadingMails || userMails.length === 0}
+                                >
+                                    Export CSV (Excel)
+                                </button>
+                                
+                                <button onClick={() => setViewingUser(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.5rem', marginLeft: '12px' }}>×</button>
+                            </div>
                         </h2>
                         
                         {loadingMails ? (
