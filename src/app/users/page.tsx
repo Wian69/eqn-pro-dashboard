@@ -75,10 +75,10 @@ export default function Users() {
     
     // Updated getRegion to handle new requirements
     const getRegion = (user: any) => {
-        // 1. Check for No License users (Dedicated Category as requested)
+        // 1. Check for Removed Users (No active license)
         const hasLicense = user.assignedLicenses && user.assignedLicenses.length > 0;
         if (!hasLicense) {
-            return 'No License Users';
+            return 'Removed User';
         }
 
         // 2. Check for users without an office location (Move to Other as requested)
@@ -103,7 +103,7 @@ export default function Users() {
         'Southern Region': [],
         'Eastern Region': [],
         'Northern Region': [],
-        'No License Users': [],
+        'Removed User': [],
         'Other': []
     };
 
@@ -247,7 +247,7 @@ export default function Users() {
                         {renderUserTable(groupedUsers['Eastern Region'], 'Eastern Region')}
                         {renderUserTable(groupedUsers['Southern Region'], 'Southern Region')}
                         {renderUserTable(groupedUsers['Other'], 'Other (Unassigned or unknown)')}
-                        {renderUserTable(groupedUsers['No License Users'], 'No License Users', 'Users that do not have any Microsoft 365 licensing assigned')}
+                        {renderUserTable(groupedUsers['Removed User'], 'Removed User', 'Users that do not have any Microsoft 365 licensing assigned')}
                     </>
                 )}
             </div>
