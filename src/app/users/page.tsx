@@ -70,10 +70,25 @@ export default function Users() {
         });
     }
 
-    // Grouping by region based on department or officeLocation text
+    // Grouping logic
     const regions = ['Western Region', 'Southern Region', 'Eastern Region', 'Northern Region'];
     
+    // Updated getRegion to handle new requirements
     const getRegion = (user: any) => {
+        // 1. Check for No License users
+        const hasLicense = user.assignedLicenses && user.assignedLicenses.length > 0;
+        if (!hasLicense) {
+            return 'No License Users';
+        }
+
+        // 2. Check for Partner.EQNCS.com domain
+        const mail = (user.mail || '').toLowerCase();
+        const upn = (user.userPrincipalName || '').toLowerCase();
+        if (mail.includes('@partner.eqncs.com') || upn.includes('@partner.eqncs.com')) {
+            return 'Partner.EQNCS.com';
+        }
+
+        // 3. Normal Region Detection
         const textToSearch = `${user.department || ''} ${user.state || ''} ${user.officeLocation || ''}`.toLowerCase();
         for (const region of regions) {
             if (textToSearch.includes(region.toLowerCase().replace(' region', ''))) {
@@ -88,6 +103,8 @@ export default function Users() {
         'Southern Region': [],
         'Eastern Region': [],
         'Northern Region': [],
+        'Partner.EQNCS.com': [],
+        'No License Users': [],
         'Other': []
     };
 
@@ -100,14 +117,19 @@ export default function Users() {
         }
     });
 
-    const renderUserTable = (usersList: any[], regionName: string) => {
+    const renderUserTable = (usersList: any[], regionName: string, description?: string) => {
         if (usersList.length === 0) return null;
         
         return (
             <div key={regionName} style={{ marginBottom: '32px' }}>
-                <h2 style={{ fontSize: '1.5rem', marginBottom: '16px', color: 'var(--accent)', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}>
-                    {regionName} ({usersList.length})
-                </h2>
+                <div style={{ marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}>
+                    <h2 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--accent)' }}>
+                        {regionName} ({usersList.length})
+                    </h2>
+                    {description && (
+                        <p style={{ margin: '4px 0 0 0', fontSize: '0.875rem', color: 'var(--text-muted)' }}>{description}</p>
+                    )}
+                </div>
                 <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
@@ -136,21 +158,21 @@ export default function Users() {
                                     : 'Never or Unknown';
 
                                 return (
-                                    <tr key={i} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.2s', cursor: 'default' }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                                    <tr key={user.id || i} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.2s', cursor: 'default' }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                                         <td style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', flexShrink: 0 }}>
                                                 {user.displayName?.[0] || 'U'}
                                             </div>
                                             {user.displayName}
                                         </td>
-                                        <td style={{ padding: '16px' }}>{user.mail || user.userPrincipalName}</td>
+                                        <td style={{ padding: '16px', wordBreak: 'break-all' }}>{user.mail || user.userPrincipalName}</td>
                                         <td style={{ padding: '16px' }}>{user.officeLocation || 'Unassigned'}</td>
                                         <td style={{ padding: '16px' }}>
-                                            <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', background: user.userType === 'Member' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(148, 163, 184, 0.1)', color: user.userType === 'Member' ? '#22c55e' : '#94a3b8' }}>
+                                            <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', background: user.userType === 'Member' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(148, 163, 184, 0.1)', color: user.userType === 'Member' ? '#22c55e' : '#94a3b8', whiteSpace: 'nowrap' }}>
                                                 {user.userType}
                                             </span>
                                         </td>
-                                        <td style={{ padding: '16px', color: lastSignIn === 'Never or Unknown' ? 'var(--text-muted)' : '#fff' }}>
+                                        <td style={{ padding: '16px', color: lastSignIn === 'Never or Unknown' ? 'var(--text-muted)' : '#fff', whiteSpace: 'nowrap' }}>
                                             {lastSignIn}
                                         </td>
                                     </tr>
@@ -171,13 +193,13 @@ export default function Users() {
             </header>
 
             <div className="glass-panel" style={{ padding: '24px' }}>
-                <div style={{ marginBottom: '32px', display: 'flex', gap: '16px' }}>
+                <div style={{ marginBottom: '32px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                     <input
                         type="text"
                         placeholder="Filter by User Name or Email..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--glass)', color: '#fff' }}
+                        style={{ flex: 1, minWidth: '300px', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--glass)', color: '#fff' }}
                     />
                     <select
                         value={typeFilter}
@@ -210,10 +232,13 @@ export default function Users() {
                         {renderUserTable(groupedUsers['Northern Region'], 'Northern Region')}
                         {renderUserTable(groupedUsers['Eastern Region'], 'Eastern Region')}
                         {renderUserTable(groupedUsers['Southern Region'], 'Southern Region')}
+                        {renderUserTable(groupedUsers['Partner.EQNCS.com'], 'Partner.EQNCS.com', 'Users from the Partner.EQNCS.com domain')}
                         {renderUserTable(groupedUsers['Other'], 'Other (Unassigned or unknown)')}
+                        {renderUserTable(groupedUsers['No License Users'], 'No License Users', 'Users that do not have any Microsoft 365 licensing assigned')}
                     </>
                 )}
             </div>
         </div>
     );
+
 }
