@@ -16,6 +16,7 @@ const navItems = [
     // { name: 'Policies', path: '/policies' },
     // { name: 'Remote Dial In', path: '/remote-dial-in' },
     { name: 'Reports', path: '/reports' },
+    { name: 'Mail Tracker', path: '/mail-tracker' },
     // { name: 'Script Deployment', path: '/script-deployment' },
     {
         name: 'Security',
