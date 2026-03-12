@@ -10,6 +10,13 @@ export default function Users() {
     const [typeFilter, setTypeFilter] = useState('all');
     // For general sorting if needed, but the prompt says sort users according to region by office location
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'officeLocation', direction: 'asc' });
+    const [expandedSections, setExpandedSections] = useState<string[]>([]);
+
+    const toggleSection = (section: string) => {
+        setExpandedSections(prev => 
+            prev.includes(section) ? prev.filter(s => s !== section) : [...prev, section]
+        );
+    };
 
     useEffect(() => {
         setError(null);
@@ -118,83 +125,101 @@ export default function Users() {
 
     const renderUserTable = (usersList: any[], regionName: string, description?: string) => {
         if (usersList.length === 0) return null;
+        const isOpen = expandedSections.includes(regionName);
         
         return (
-            <div key={regionName} style={{ marginBottom: '32px' }}>
-                <div style={{ marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}>
-                    <h2 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--accent)' }}>
-                        {regionName} ({usersList.length})
-                    </h2>
-                    {description && (
-                        <p style={{ margin: '4px 0 0 0', fontSize: '0.875rem', color: 'var(--text-muted)' }}>{description}</p>
-                    )}
+            <div key={regionName} className="glass-panel" style={{ marginBottom: '24px', padding: '16px' }}>
+                <div 
+                    onClick={() => toggleSection(regionName)}
+                    style={{ 
+                        cursor: 'pointer', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'space-between',
+                        userSelect: 'none'
+                    }}
+                >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <h2 style={{ fontSize: '1.25rem', margin: 0, color: 'var(--accent)' }}>
+                            {regionName} ({usersList.length})
+                        </h2>
+                        {description && (
+                            <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-muted)' }}>{description}</p>
+                        )}
+                    </div>
+                    <span style={{ fontSize: '1.25rem', transition: 'transform 0.3s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                        ▼
+                    </span>
                 </div>
-                <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                            <tr style={{ color: 'var(--text-muted)', textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
-                                <th onClick={() => toggleSort('displayName')} style={{ padding: '12px', cursor: 'pointer', userSelect: 'none' }}>
-                                    User {getSortIcon('displayName')}
-                                </th>
-                                <th onClick={() => toggleSort('mail')} style={{ padding: '12px', cursor: 'pointer', userSelect: 'none' }}>
-                                    Email {getSortIcon('mail')}
-                                </th>
-                                <th onClick={() => toggleSort('officeLocation')} style={{ padding: '12px', cursor: 'pointer', userSelect: 'none' }}>
-                                    Office Location {getSortIcon('officeLocation')}
-                                </th>
-                                <th onClick={() => toggleSort('userType')} style={{ padding: '12px', cursor: 'pointer', userSelect: 'none' }}>
-                                    Type {getSortIcon('userType')}
-                                </th>
-                                <th style={{ padding: '12px', cursor: 'pointer', userSelect: 'none' }}>
-                                    Last Sign In
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {usersList.map((user, i) => {
-                                const lastSignIn = user.signInActivity?.lastSignInDateTime 
-                                    ? new Date(user.signInActivity.lastSignInDateTime).toLocaleString() 
-                                    : 'Never or Unknown';
 
-                                return (
-                                    <tr 
-                                        key={user.id || i} 
-                                        onClick={() => user.id ? window.location.href = `/users/${user.id}` : null}
-                                        style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.2s', cursor: user.id ? 'pointer' : 'default' }} 
-                                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} 
-                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                                    >
-                                        <td style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', flexShrink: 0 }}>
-                                                {user.displayName?.[0] || 'U'}
-                                            </div>
-                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    {user.displayName}
-                                                    {(user.mail?.toLowerCase().includes('@partner.eqncs.com') || user.userPrincipalName?.toLowerCase().includes('@partner.eqncs.com')) && (
-                                                        <span style={{ fontSize: '0.65rem', background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
-                                                            Partner.EQNCS.com
-                                                        </span>
-                                                    )}
+                {isOpen && (
+                    <div style={{ marginTop: '24px', overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead>
+                                <tr style={{ color: 'var(--text-muted)', textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
+                                    <th onClick={(e) => { e.stopPropagation(); toggleSort('displayName'); }} style={{ padding: '12px', cursor: 'pointer', userSelect: 'none' }}>
+                                        User {getSortIcon('displayName')}
+                                    </th>
+                                    <th onClick={(e) => { e.stopPropagation(); toggleSort('mail'); }} style={{ padding: '12px', cursor: 'pointer', userSelect: 'none' }}>
+                                        Email {getSortIcon('mail')}
+                                    </th>
+                                    <th onClick={(e) => { e.stopPropagation(); toggleSort('officeLocation'); }} style={{ padding: '12px', cursor: 'pointer', userSelect: 'none' }}>
+                                        Office Location {getSortIcon('officeLocation')}
+                                    </th>
+                                    <th onClick={(e) => { e.stopPropagation(); toggleSort('userType'); }} style={{ padding: '12px', cursor: 'pointer', userSelect: 'none' }}>
+                                        Type {getSortIcon('userType')}
+                                    </th>
+                                    <th style={{ padding: '12px' }}>
+                                        Last Sign In
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {usersList.map((user, i) => {
+                                    const lastSignIn = user.signInActivity?.lastSignInDateTime 
+                                        ? new Date(user.signInActivity.lastSignInDateTime).toLocaleString() 
+                                        : 'Never or Unknown';
+
+                                    return (
+                                        <tr 
+                                            key={user.id || i} 
+                                            onClick={(e) => { e.stopPropagation(); if (user.id) window.location.href = `/users/${user.id}`; }}
+                                            style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.2s', cursor: user.id ? 'pointer' : 'default' }} 
+                                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} 
+                                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                        >
+                                            <td style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', flexShrink: 0 }}>
+                                                    {user.displayName?.[0] || 'U'}
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '16px', wordBreak: 'break-all' }}>{user.mail || user.userPrincipalName}</td>
-                                        <td style={{ padding: '16px' }}>{user.officeLocation || 'Unassigned'}</td>
-                                        <td style={{ padding: '16px' }}>
-                                            <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', background: user.userType === 'Member' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(148, 163, 184, 0.1)', color: user.userType === 'Member' ? '#22c55e' : '#94a3b8', whiteSpace: 'nowrap' }}>
-                                                {user.userType}
-                                            </span>
-                                        </td>
-                                        <td style={{ padding: '16px', color: lastSignIn === 'Never or Unknown' ? 'var(--text-muted)' : '#fff', whiteSpace: 'nowrap' }}>
-                                            {lastSignIn}
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
+                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        {user.displayName}
+                                                        {(user.mail?.toLowerCase().includes('@partner.eqncs.com') || user.userPrincipalName?.toLowerCase().includes('@partner.eqncs.com')) && (
+                                                            <span style={{ fontSize: '0.65rem', background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
+                                                                Partner.EQNCS.com
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td style={{ padding: '16px', wordBreak: 'break-all' }}>{user.mail || user.userPrincipalName}</td>
+                                            <td style={{ padding: '16px' }}>{user.officeLocation || 'Unassigned'}</td>
+                                            <td style={{ padding: '16px' }}>
+                                                <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', background: user.userType === 'Member' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(148, 163, 184, 0.1)', color: user.userType === 'Member' ? '#22c55e' : '#94a3b8', whiteSpace: 'nowrap' }}>
+                                                    {user.userType}
+                                                </span>
+                                            </td>
+                                            <td style={{ padding: '16px', color: lastSignIn === 'Never or Unknown' ? 'var(--text-muted)' : '#fff', whiteSpace: 'nowrap' }}>
+                                                {lastSignIn}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
         );
     };
@@ -206,7 +231,7 @@ export default function Users() {
                 <p style={{ color: 'var(--text-muted)' }}>Distribution lists and sign-in activity from Microsoft Graph.</p>
             </header>
 
-            <div className="glass-panel" style={{ padding: '24px' }}>
+            <div style={{ width: '100%' }}>
                 <div style={{ marginBottom: '32px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                     <input
                         type="text"

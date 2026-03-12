@@ -28,12 +28,7 @@ const navItems = [
     // { name: 'Signature Manager', path: '/signature-manager' },
     {
         name: 'Users',
-        path: '/users',
-        subItems: [
-            { name: 'Active Users', path: '/users/active-users' },
-            { name: 'Guest Users', path: '/users/guest-users' },
-            { name: 'No License Users', path: '/users/no-license-users' },
-        ]
+        path: '/users'
     },
 ];
 
