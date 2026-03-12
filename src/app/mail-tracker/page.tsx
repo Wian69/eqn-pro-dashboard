@@ -2,6 +2,16 @@
 
 import { useEffect, useState } from 'react';
 
+const formatRecipients = (recipients: any[]) => {
+    if (!recipients || !Array.isArray(recipients) || recipients.length === 0) return '';
+    return recipients.map((r: any) => {
+        if (r.emailAddress?.address) return r.emailAddress.address;
+        if (r.emailAddress?.name) return r.emailAddress.name;
+        if (typeof r.emailAddress === 'string') return r.emailAddress;
+        return 'Unknown Recipient';
+    }).filter(Boolean).join(', ');
+};
+
 export default function MailTracker() {
     const [allUsers, setAllUsers] = useState<any[]>([]);
     const [trackedUsers, setTrackedUsers] = useState<any[]>([]);
@@ -303,10 +313,10 @@ export default function MailTracker() {
                                                     {mail.subject || '(No Subject)'}
                                                 </td>
                                                 <td style={{ padding: '12px', verticalAlign: 'top', fontSize: '0.875rem' }}>
-                                                    {mail.toRecipients?.map((r: any) => r.emailAddress?.address).join(', ') || 'Unknown'}
+                                                    {formatRecipients(mail.toRecipients) || '(No To Recipients)'}
                                                     {mail.ccRecipients && mail.ccRecipients.length > 0 && (
                                                         <div style={{ color: 'var(--text-muted)', marginTop: '4px' }}>
-                                                            CC: {mail.ccRecipients.map((r: any) => r.emailAddress?.address).join(', ')}
+                                                            CC: {formatRecipients(mail.ccRecipients)}
                                                         </div>
                                                     )}
                                                 </td>

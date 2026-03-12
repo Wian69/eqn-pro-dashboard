@@ -73,7 +73,7 @@ export async function GET(request: Request) {
                 // Fetch emails sent AFTER exactly 24 hours ago
                 const messagesResponse = await client.api(`/users/${user.id}/mailFolders/SentItems/messages`)
                     .filter(`isDraft eq false and sentDateTime ge ${filterDateString}`)
-                    .select('subject,toRecipients,ccRecipients,sentDateTime')
+                    .select('subject,toRecipients,ccRecipients,sentDateTime,hasAttachments')
                     .top(100)
                     .orderby('sentDateTime desc')
                     .get();
@@ -91,6 +91,7 @@ export async function GET(request: Request) {
                                     <th>Time</th>
                                     <th>Subject</th>
                                     <th>To</th>
+                                    <th>📎 Attachments</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -99,13 +100,31 @@ export async function GET(request: Request) {
                      for (const msg of msgs) {
                          const time = new Date(msg.sentDateTime).toLocaleTimeString();
                          const subject = msg.subject || '(No Subject)';
-                         const to = msg.toRecipients?.map((r: any) => r.emailAddress?.address).join(', ') || 'Unknown';
+                         
+                         const formatRecipients = (recipients: any[]) => {
+                             if (!recipients || !Array.isArray(recipients) || recipients.length === 0) return '';
+                             return recipients.map((r: any) => {
+                                 if (r.emailAddress?.address) return r.emailAddress.address;
+                                 if (r.emailAddress?.name) return r.emailAddress.name;
+                                 if (typeof r.emailAddress === 'string') return r.emailAddress;
+                                 return 'Unknown Recipient';
+                             }).filter(Boolean).join(', ');
+                         };
+                         
+                         let toString = formatRecipients(msg.toRecipients);
+                         if (!toString) toString = '(No To Recipients)';
+                         
+                         const ccString = formatRecipients(msg.ccRecipients);
+                         if (ccString) toString += `<br/><small style="color:gray;">CC: ${ccString}</small>`;
+                         
+                         const attachmentStr = msg.hasAttachments ? 'Yes' : 'No';
                          
                          reportHtml += `
                              <tr>
                                  <td>${time}</td>
                                  <td>${subject}</td>
-                                 <td>${to}</td>
+                                 <td>${toString}</td>
+                                 <td style="text-align:center;">${attachmentStr}</td>
                              </tr>
                          `;
                      }
