@@ -5,9 +5,11 @@ export async function GET() {
     try {
         const client = getGraphClient();
 
-        // Fetch all users
+        // Fetch all users with department, officeLocation and signInActivity
+        // Note: signInActivity requires AuditLog.Read.All permission
         const usersResponse = await client.api('/users')
-            .select('displayName,mail,userPrincipalName,userType,id,assignedLicenses')
+            .version('beta') // signInActivity is available in beta or v1.0 depending on the tenant, but beta is safer for detailed sign in
+            .select('displayName,mail,userPrincipalName,userType,id,assignedLicenses,department,officeLocation,signInActivity')
             .get();
 
         const users = usersResponse.value;

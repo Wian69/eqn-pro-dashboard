@@ -4,12 +4,12 @@ import { useEffect, useState } from 'react';
 
 export default function Users() {
     const [users, setUsers] = useState<any[]>([]);
-    const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [search, setSearch] = useState('');
     const [typeFilter, setTypeFilter] = useState('all');
-    const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'displayName', direction: 'asc' });
+    // For general sorting if needed, but the prompt says sort users according to region by office location
+    const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'officeLocation', direction: 'asc' });
 
     useEffect(() => {
         setError(null);
@@ -23,7 +23,6 @@ export default function Users() {
             })
             .then(data => {
                 setUsers(data.all || []);
-                setFilteredUsers(data.all || []);
             })
             .catch(err => {
                 console.error('Failed to fetch users:', err);
@@ -34,29 +33,6 @@ export default function Users() {
                 setLoading(false);
             });
     }, []);
-
-    useEffect(() => {
-        let result = [...users];
-        if (search) {
-            result = result.filter(u =>
-                u.displayName?.toLowerCase().includes(search.toLowerCase()) ||
-                u.mail?.toLowerCase().includes(search.toLowerCase())
-            );
-        }
-        if (typeFilter !== 'all') {
-            result = result.filter(u => u.userType === typeFilter);
-        }
-        if (sortConfig !== null) {
-            result.sort((a, b) => {
-                const aValue = a[sortConfig.key]?.toString().toLowerCase() || '';
-                const bValue = b[sortConfig.key]?.toString().toLowerCase() || '';
-                if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-                if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
-                return 0;
-            });
-        }
-        setFilteredUsers(result);
-    }, [search, typeFilter, users, sortConfig]);
 
     const toggleSort = (key: string) => {
         let direction: 'asc' | 'desc' = 'asc';
@@ -71,14 +47,131 @@ export default function Users() {
         return sortConfig.direction === 'asc' ? '🔼' : '🔽';
     };
 
+    // Filter users first
+    let filteredUsers = [...users];
+    if (search) {
+        filteredUsers = filteredUsers.filter(u =>
+            u.displayName?.toLowerCase().includes(search.toLowerCase()) ||
+            u.mail?.toLowerCase().includes(search.toLowerCase())
+        );
+    }
+    if (typeFilter !== 'all') {
+        filteredUsers = filteredUsers.filter(u => u.userType === typeFilter);
+    }
+
+    // Sort users
+    if (sortConfig !== null) {
+        filteredUsers.sort((a, b) => {
+            const aValue = a[sortConfig.key]?.toString().toLowerCase() || '';
+            const bValue = b[sortConfig.key]?.toString().toLowerCase() || '';
+            if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+            if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }
+
+    // Grouping by region based on department or officeLocation text
+    const regions = ['Western Region', 'Southern Region', 'Eastern Region', 'Northern Region'];
+    
+    const getRegion = (user: any) => {
+        const textToSearch = `${user.department || ''} ${user.state || ''} ${user.officeLocation || ''}`.toLowerCase();
+        for (const region of regions) {
+            if (textToSearch.includes(region.toLowerCase().replace(' region', ''))) {
+                return region;
+            }
+        }
+        return 'Other';
+    };
+
+    const groupedUsers: Record<string, any[]> = {
+        'Western Region': [],
+        'Southern Region': [],
+        'Eastern Region': [],
+        'Northern Region': [],
+        'Other': []
+    };
+
+    filteredUsers.forEach(user => {
+        const region = getRegion(user);
+        if (groupedUsers[region]) {
+            groupedUsers[region].push(user);
+        } else {
+            groupedUsers['Other'].push(user);
+        }
+    });
+
+    const renderUserTable = (usersList: any[], regionName: string) => {
+        if (usersList.length === 0) return null;
+        
+        return (
+            <div key={regionName} style={{ marginBottom: '32px' }}>
+                <h2 style={{ fontSize: '1.5rem', marginBottom: '16px', color: 'var(--accent)', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}>
+                    {regionName} ({usersList.length})
+                </h2>
+                <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                            <tr style={{ color: 'var(--text-muted)', textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
+                                <th onClick={() => toggleSort('displayName')} style={{ padding: '12px', cursor: 'pointer', userSelect: 'none' }}>
+                                    User {getSortIcon('displayName')}
+                                </th>
+                                <th onClick={() => toggleSort('mail')} style={{ padding: '12px', cursor: 'pointer', userSelect: 'none' }}>
+                                    Email {getSortIcon('mail')}
+                                </th>
+                                <th onClick={() => toggleSort('officeLocation')} style={{ padding: '12px', cursor: 'pointer', userSelect: 'none' }}>
+                                    Office Location {getSortIcon('officeLocation')}
+                                </th>
+                                <th onClick={() => toggleSort('userType')} style={{ padding: '12px', cursor: 'pointer', userSelect: 'none' }}>
+                                    Type {getSortIcon('userType')}
+                                </th>
+                                <th style={{ padding: '12px', cursor: 'pointer', userSelect: 'none' }}>
+                                    Last Sign In
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {usersList.map((user, i) => {
+                                const lastSignIn = user.signInActivity?.lastSignInDateTime 
+                                    ? new Date(user.signInActivity.lastSignInDateTime).toLocaleString() 
+                                    : 'Never or Unknown';
+
+                                return (
+                                    <tr key={i} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.2s', cursor: 'default' }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                                        <td style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                                                {user.displayName?.[0] || 'U'}
+                                            </div>
+                                            {user.displayName}
+                                        </td>
+                                        <td style={{ padding: '16px' }}>{user.mail || user.userPrincipalName}</td>
+                                        <td style={{ padding: '16px' }}>{user.officeLocation || 'Unassigned'}</td>
+                                        <td style={{ padding: '16px' }}>
+                                            <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', background: user.userType === 'Member' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(148, 163, 184, 0.1)', color: user.userType === 'Member' ? '#22c55e' : '#94a3b8' }}>
+                                                {user.userType}
+                                            </span>
+                                        </td>
+                                        <td style={{ padding: '16px', color: lastSignIn === 'Never or Unknown' ? 'var(--text-muted)' : '#fff' }}>
+                                            {lastSignIn}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div>
             <header style={{ marginBottom: '40px' }}>
                 <h1 style={{ fontSize: '2rem', marginBottom: '8px' }}>User Management</h1>
-                <p style={{ color: 'var(--text-muted)' }}>Manage real identities and access levels from Microsoft Graph.</p>
+                <p style={{ color: 'var(--text-muted)' }}>Distribution lists and sign-in activity from Microsoft Graph.</p>
             </header>
+
             <div className="glass-panel" style={{ padding: '24px' }}>
-                <div style={{ marginBottom: '24px', display: 'flex', gap: '16px' }}>
+                <div style={{ marginBottom: '32px', display: 'flex', gap: '16px' }}>
                     <input
                         type="text"
                         placeholder="Filter by User Name or Email..."
@@ -96,6 +189,7 @@ export default function Users() {
                         <option value="Guest" style={{ background: '#111', color: '#fff' }}>Guest</option>
                     </select>
                 </div>
+                
                 {error && (
                     <div style={{ marginBottom: '24px', padding: '16px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <span>⚠️</span>
@@ -105,43 +199,20 @@ export default function Users() {
                         </div>
                     </div>
                 )}
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                        <tr style={{ color: 'var(--text-muted)', textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
-                            <th onClick={() => toggleSort('displayName')} style={{ padding: '12px', cursor: 'pointer', userSelect: 'none' }}>
-                                User {getSortIcon('displayName')}
-                            </th>
-                            <th onClick={() => toggleSort('mail')} style={{ padding: '12px', cursor: 'pointer', userSelect: 'none' }}>
-                                Email {getSortIcon('mail')}
-                            </th>
-                            <th onClick={() => toggleSort('userType')} style={{ padding: '12px', cursor: 'pointer', userSelect: 'none' }}>
-                                Type {getSortIcon('userType')}
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {loading ? (
-                            <tr><td colSpan={3} style={{ padding: '20px', textAlign: 'center' }}>Loading Users...</td></tr>
-                        ) : filteredUsers.length === 0 ? (
-                            <tr><td colSpan={3} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>No users match filters.</td></tr>
-                        ) : filteredUsers.map((user, i) => (
-                            <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
-                                <td style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                                        {user.displayName?.[0] || 'U'}
-                                    </div>
-                                    {user.displayName}
-                                </td>
-                                <td style={{ padding: '16px' }}>{user.mail || user.userPrincipalName}</td>
-                                <td style={{ padding: '16px' }}>
-                                    <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', background: user.userType === 'Member' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(148, 163, 184, 0.1)', color: user.userType === 'Member' ? '#22c55e' : '#94a3b8' }}>
-                                        {user.userType}
-                                    </span>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+
+                {loading ? (
+                    <div style={{ padding: '40px', textAlign: 'center' }}>Loading Users...</div>
+                ) : filteredUsers.length === 0 && !error ? (
+                    <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>No users match filters.</div>
+                ) : (
+                    <>
+                        {renderUserTable(groupedUsers['Western Region'], 'Western Region')}
+                        {renderUserTable(groupedUsers['Northern Region'], 'Northern Region')}
+                        {renderUserTable(groupedUsers['Eastern Region'], 'Eastern Region')}
+                        {renderUserTable(groupedUsers['Southern Region'], 'Southern Region')}
+                        {renderUserTable(groupedUsers['Other'], 'Other (Unassigned or unknown)')}
+                    </>
+                )}
             </div>
         </div>
     );

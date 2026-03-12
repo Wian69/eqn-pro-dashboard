@@ -79,6 +79,21 @@ export async function POST(request: Request) {
 
         if (!deviceId) return NextResponse.json({ error: 'Missing deviceId' }, { status: 400 });
 
+        // Check for existing software array to prevent wiping it out on normal heartbeats
+        let finalSoftware = data.software;
+        if (!finalSoftware || finalSoftware.length === 0) {
+            const { data: existingAgent } = await supabase
+                .from('agents')
+                .select('software')
+                .eq('device_id', deviceId)
+                .single();
+            if (existingAgent && existingAgent.software) {
+                finalSoftware = existingAgent.software;
+            } else {
+                finalSoftware = [];
+            }
+        }
+
         // Upsert Agent Data
         const { error: upsertError } = await supabase
             .from('agents')
@@ -98,7 +113,7 @@ export async function POST(request: Request) {
                 coords,
                 last_seen: lastSeen || new Date().toISOString(),
                 status: 'online',
-                software: data.software || [],
+                software: finalSoftware,
                 updated_at: new Date().toISOString()
             });
 

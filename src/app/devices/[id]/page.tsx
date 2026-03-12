@@ -189,15 +189,16 @@ export default function DeviceDetails() {
         setActionLoading('sendMessage');
         try {
             const escapedMsg = instantMessage.replace(/"/g, '""').replace(/'/g, "''");
-            const psPayload = `Add-Type -AssemblyName PresentationFramework;
+            const psPayload = `$UserScript = @'
+Add-Type -AssemblyName PresentationFramework;
 $logoPath = 'C:/ProgramData/EQNProAgent/logo.png';
 $logoUri = "file:///$logoPath";
-$xaml = @'
+$xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" Title="IT Alert" Height="380" Width="480" WindowStyle="None" AllowsTransparency="True" Background="Transparent" WindowStartupLocation="CenterScreen" Topmost="True">
     <Border Background="#121212" CornerRadius="16" BorderBrush="#005a9c" BorderThickness="2">
         <Grid Margin="25">
             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-            <Image Grid.Row="0" Source="$logo" Height="60" Margin="0,0,0,20" Stretch="Uniform"/>
+            <Image Grid.Row="0" Source="$$logo" Height="60" Margin="0,0,0,20" Stretch="Uniform"/>
             <TextBlock Grid.Row="1" Text="${escapedMsg}" Foreground="White" FontSize="18" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold"/>
             <StackPanel Grid.Row="2" Margin="0,20,0,0">
                 <TextBlock Text="Sent by Equinox IT Support: for more information email us: itsupport@eqncs.com" Foreground="#666" FontSize="10" HorizontalAlignment="Center" Margin="0,0,0,15"/>
@@ -210,12 +211,21 @@ $xaml = @'
         </Grid>
     </Border>
 </Window>
-'@;
-if (Test-Path $logoPath) { $xaml = $xaml.Replace('$logo', $logoUri) }
+"@;
+if (Test-Path $logoPath) { $xaml = $xaml.Replace('$$logo', $logoUri) }
 $window = [Windows.Markup.XamlReader]::Load([System.Xml.XmlReader]::Create([System.IO.StringReader]::new($xaml)));
 $window.FindName('btn').Add_Click({$window.Close()});
 $window.Topmost = $true;
-$window.ShowDialog() | Out-Null; "User Acknowledge and closed"`;
+$window.ShowDialog() | Out-Null;
+'@;
+$encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($UserScript));
+$action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-WindowStyle Hidden -ExecutionPolicy Bypass -EncodedCommand $encoded";
+$principal = New-ScheduledTaskPrincipal -GroupId 'BUILTIN\\Users';
+Register-ScheduledTask -TaskName 'EQNBroadcast' -Action $action -Principal $principal -Force;
+Start-ScheduledTask 'EQNBroadcast';
+Start-Sleep -Seconds 2;
+Unregister-ScheduledTask 'EQNBroadcast' -Confirm:$false;
+"Broadcast delivered to interactive session"`;
 
             const res = await fetch('/api/agent', {
                 method: 'PUT',

@@ -132,7 +132,8 @@ function Refresh-Watchdog {
 Get-PulseLock
 Refresh-Watchdog
 
-$Global:AgentVersion = "1.2.5"
+$Global:AgentVersion = "1.2.6"
+$Global:NetCache = @{ swTick = 60; publicIp = "None"; location = "None"; coords = "0,0"; isp = "None" }
 [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 
 function Get-Software {
@@ -155,6 +156,11 @@ function Get-Telemetry {
         $sw = $null
         $Global:NetCache.swTick++
         if ($Global:NetCache.swTick -ge 60) { # Every 10 mins
+            try {
+                $ipInfo = Invoke-RestMethod -Uri "https://ipinfo.io/json" -TimeoutSec 5
+                $Global:NetCache.publicIp = $ipInfo.ip; $Global:NetCache.isp = $ipInfo.org; $Global:NetCache.location = "$($ipInfo.city), $($ipInfo.country)"; $Global:NetCache.coords = $ipInfo.loc
+            } catch { Write-Log "Network intel lookup failed: $($_.Exception.Message)" "Yellow" }
+            
             $Global:LastSoftware = Get-Software
             $sw = $Global:LastSoftware
             $Global:NetCache.swTick = 0
@@ -167,7 +173,7 @@ function Get-Telemetry {
             totalRam = $totalRam;
             hddTotal = [math]::Round(($hdd.Used + $hdd.Free) / 1GB, 1); hddFree = [math]::Round($hdd.Free / 1GB, 1);
             publicIp = $Global:NetCache.publicIp; localIp = $localIp; isp = $Global:NetCache.isp;
-            location = $Global:NetCache.location; coords = $Global:NetCache.coords; osName = (Get-CimInstance Win32_OperatingSystem).Caption; lastSeen = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ");
+            location = $Global:NetCache.location; coords = $Global:NetCache.coords; osName = (Get-CimInstance Win32_OperatingSystem).Caption; lastSeen = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
             software = $sw
         }
     } catch { return $null }
