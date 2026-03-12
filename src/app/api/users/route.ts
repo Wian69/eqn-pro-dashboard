@@ -14,9 +14,9 @@ export async function GET() {
             try {
                 const apiCall = client.api(nextLink);
                 if (!permissionFallback) {
-                    apiCall.version('beta').select('displayName,mail,userPrincipalName,userType,id,assignedLicenses,department,officeLocation,signInActivity');
+                    apiCall.version('beta').select('displayName,mail,userPrincipalName,userType,id,assignedLicenses,department,officeLocation,state,signInActivity');
                 } else {
-                    apiCall.select('displayName,mail,userPrincipalName,userType,id,assignedLicenses,department,officeLocation');
+                    apiCall.select('displayName,mail,userPrincipalName,userType,id,assignedLicenses,department,officeLocation,state');
                 }
 
                 const response = await apiCall.get();

@@ -88,17 +88,19 @@ export default function Users() {
             return 'Removed User';
         }
 
-        // 2. Check for users without an office location (Move to Other as requested)
-        if (!user.officeLocation) {
-            return 'Other';
+        // 2. Exact match check against State/Province explicitly assigned as a region
+        if (user.state && regions.includes(user.state)) {
+            return user.state;
         }
 
-        // 3. Region Detection strictly based on officeLocation
-        const office = user.officeLocation.toLowerCase();
-        for (const region of regions) {
-            const regionKeyword = region.toLowerCase().replace(' region', '');
-            if (office.includes(regionKeyword)) {
-                return region;
+        // 3. Fallback: Region Detection based on keywords in officeLocation
+        if (user.officeLocation) {
+            const office = user.officeLocation.toLowerCase();
+            for (const region of regions) {
+                const regionKeyword = region.toLowerCase().replace(' region', '');
+                if (office.includes(regionKeyword)) {
+                    return region;
+                }
             }
         }
 

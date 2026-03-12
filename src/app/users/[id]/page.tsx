@@ -209,7 +209,24 @@ export default function UserDetails(props: { params: Promise<{ id: string }> }) 
                         {renderDetail('Office Location', 'officeLocation', user.officeLocation)}
                         {renderDetail('Street Address', 'streetAddress', user.streetAddress)}
                         {renderDetail('City', 'city', user.city)}
-                        {renderDetail('State/Province', 'state', user.state)}
+                        <div style={{ marginBottom: '16px' }}>
+                            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Region (State/Province)</p>
+                            {isEditing ? (
+                                <select 
+                                    value={editData.state || ''} 
+                                    onChange={(e) => setEditData({...editData, state: e.target.value})}
+                                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: '#111', color: '#fff', cursor: 'pointer' }}
+                                >
+                                    <option value="" style={{ background: '#111', color: '#fff' }}>Unassigned</option>
+                                    <option value="Western Region" style={{ background: '#111', color: '#fff' }}>Western Region</option>
+                                    <option value="Southern Region" style={{ background: '#111', color: '#fff' }}>Southern Region</option>
+                                    <option value="Eastern Region" style={{ background: '#111', color: '#fff' }}>Eastern Region</option>
+                                    <option value="Northern Region" style={{ background: '#111', color: '#fff' }}>Northern Region</option>
+                                </select>
+                            ) : (
+                                <p style={{ fontSize: '1rem', color: '#fff', wordBreak: 'break-word' }}>{user.state || '—'}</p>
+                            )}
+                        </div>
                         {renderDetail('Postal Code', 'postalCode', user.postalCode)}
                         {renderDetail('Country/Region', 'country', user.country)}
                         <div style={{ marginBottom: '16px' }}>
