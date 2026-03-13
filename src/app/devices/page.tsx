@@ -192,11 +192,29 @@ export default function Devices() {
                                         {new Date(dev.lastSyncDateTime).toLocaleDateString()}
                                     </td>
                                     <td style={{ padding: '16px', textAlign: 'right' }}>
-                                        {isAgent && (
-                                            <span style={{ color: '#22c55e', fontSize: '0.75rem' }}>Active Agent</span>
-                                        )}
-                                        {!isAgent && (
-                                            <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Management Only</span>
+                                        {isAgent ? (
+                                            <span style={{ color: '#22c55e', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                                ✅ ACTIVE AGENT
+                                            </span>
+                                        ) : (
+                                            <button
+                                                onClick={(e) => deployAgent(dev.id, e)}
+                                                disabled={deploying === dev.id}
+                                                style={{
+                                                    padding: '6px 12px',
+                                                    borderRadius: '6px',
+                                                    background: deploying === dev.id ? '#333' : 'var(--accent)',
+                                                    color: '#fff',
+                                                    border: 'none',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: '600',
+                                                    cursor: deploying === dev.id ? 'not-allowed' : 'pointer',
+                                                    transition: 'all 0.2s',
+                                                    opacity: deploying === dev.id ? 0.7 : 1
+                                                }}
+                                            >
+                                                {deploying === dev.id ? '⌛ Deploying...' : '🚀 Deploy Agent'}
+                                            </button>
                                         )}
                                     </td>
                                 </tr>
