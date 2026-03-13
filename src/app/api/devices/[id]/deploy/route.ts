@@ -5,9 +5,9 @@ import path from 'path';
 
 export async function POST(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
-    const deviceId = params.id;
+    const { id: deviceId } = await params;
     console.log(`[API] Initiating Intune Agent Deployment for Device: ${deviceId}`);
 
     try {

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getGraphClient } from '@/lib/graph';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     console.log('[API] GET /api/devices initiated...');
     try {
