@@ -223,7 +223,7 @@ try {
     # Try sessions 1-3 (common active sessions)
     1..3 | ForEach-Object { [WTS]::WTSSendMessage([IntPtr]::Zero, $_, "IT Support Alert", 32, $msg, ($msg.Length * 2), 0x40, 0, [ref]$resp, $false) }
     try { msg * /TIME:300 $msg } catch {}
-} catch { "$item $(Get-Date -Format 'yyyy-MM-dd HH:mm') [Broadcast] WTS Error: $_" | Out-File $log -Append }
+} catch { "$(Get-Date -Format 'yyyy-MM-dd HH:mm') [Broadcast] WTS Error: $_" | Out-File $log -Append }
 
 # 2. Branded Window via Scheduled Task (Asynchronous)
 $UserScript = @'
@@ -237,7 +237,7 @@ $xaml = @"
         <Grid Margin="25">
             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <Image Grid.Row="0" Source="$$logo" Height="60" Margin="0,0,0,20" Stretch="Uniform"/>
-            <TextBlock Grid.Row="1" Text="${msg}" Foreground="White" FontSize="18" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold"/>
+            <TextBlock Grid.Row="1" Text="${escapedMsg}" Foreground="White" FontSize="18" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold"/>
             <StackPanel Grid.Row="2" Margin="0,20,0,0">
                 <TextBlock Text="Sent by Equinox IT Support: for more information email us: itsupport@eqncs.com" Foreground="#666" FontSize="10" HorizontalAlignment="Center" Margin="0,0,0,15"/>
                 <Button Name="btn" Content="Acknowledge" Height="36" Width="140" Background="#005a9c" Foreground="White" BorderThickness="0" FontSize="14" FontWeight="Bold">
