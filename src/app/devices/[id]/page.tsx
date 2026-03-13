@@ -205,11 +205,10 @@ export default function DeviceDetails() {
         setActionLoading('sendMessage');
         try {
             const escapedMsg = instantMessage.replace(/"/g, '""').replace(/'/g, "''");
-            const psPayload = `$UserScript = @'
-Add-Type -AssemblyName PresentationFramework;
-Add-Type -AssemblyName System.Windows.Forms;
+            const psPayload = `$msg = "${escapedMsg}"
+$log = 'C:/ProgramData/EQNProAgent/agent.log'
 
-# 1. Fallback: WTSSendMessage (The ultimate Session 0 bypass)
+# 1. Immediate Session 0 Bypasses (Native API)
 $WTSDefinition = @"
 using System;
 using System.Runtime.InteropServices;
@@ -221,29 +220,15 @@ public class WTS {
 try {
     Add-Type -TypeDefinition $WTSDefinition -ErrorAction SilentlyContinue
     $resp = 0
-    # Dynamically find the active console session OR any active user session
-    $sessions = (qwinsta /active) -split "\n" | Select-String ">|Active" | ForEach-Object {
-        if ($_ -match '(\d+)') { $matches[1] }
-    }
-    if ($sessions.Count -eq 0) { $sessions = 1..2 } # Fallback to common IDs
-    
-    $log = 'C:/ProgramData/EQNProAgent/agent.log'
-    "$(Get-Date -Format 'yyyy-MM-dd HH:mm') [Broadcast] Targeting sessions: $($sessions -join ',')" | Out-File $log -Append
-    
-    $title = "IT Support Alert"
-    $sessions | ForEach-Object { 
-        [WTS]::WTSSendMessage([IntPtr]::Zero, [int]$_, $title, ($title.Length * 2), "${escapedMsg}", (${escapedMsg}.Length * 2), 0x40, 0, [ref]$resp, $false) 
-    }
-} catch { 
-    $log = 'C:/ProgramData/EQNProAgent/agent.log'
-    "$(Get-Date -Format 'yyyy-MM-dd HH:mm') [Broadcast] Error: $_" | Out-File $log -Append 
-}
+    # Try sessions 1-3 (common active sessions)
+    1..3 | ForEach-Object { [WTS]::WTSSendMessage([IntPtr]::Zero, $_, "IT Support Alert", 32, $msg, ($msg.Length * 2), 0x40, 0, [ref]$resp, $false) }
+    try { msg * /TIME:300 $msg } catch {}
+} catch { "$item $(Get-Date -Format 'yyyy-MM-dd HH:mm') [Broadcast] WTS Error: $_" | Out-File $log -Append }
 
-# 2. Fallback: msg.exe and VBS
-try { msg * /TIME:300 "${escapedMsg}" } catch {}
-try { (New-Object -ComObject WScript.Shell).Popup("${escapedMsg}", 0, "IT Support Alert", 0x40 + 0x1000) } catch {}
-
-# 3. Branded WPF Window
+# 2. Branded Window via Scheduled Task (Asynchronous)
+$UserScript = @'
+Add-Type -AssemblyName PresentationFramework;
+Add-Type -AssemblyName System.Windows.Forms;
 $logoPath = 'C:/ProgramData/EQNProAgent/logo.png';
 $logoUri = "file:///$logoPath";
 $xaml = @"
@@ -252,7 +237,7 @@ $xaml = @"
         <Grid Margin="25">
             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <Image Grid.Row="0" Source="$$logo" Height="60" Margin="0,0,0,20" Stretch="Uniform"/>
-            <TextBlock Grid.Row="1" Text="${escapedMsg}" Foreground="White" FontSize="18" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold"/>
+            <TextBlock Grid.Row="1" Text="${msg}" Foreground="White" FontSize="18" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold"/>
             <StackPanel Grid.Row="2" Margin="0,20,0,0">
                 <TextBlock Text="Sent by Equinox IT Support: for more information email us: itsupport@eqncs.com" Foreground="#666" FontSize="10" HorizontalAlignment="Center" Margin="0,0,0,15"/>
                 <Button Name="btn" Content="Acknowledge" Height="36" Width="140" Background="#005a9c" Foreground="White" BorderThickness="0" FontSize="14" FontWeight="Bold">
@@ -277,9 +262,12 @@ $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfil
 $principal = New-ScheduledTaskPrincipal -GroupId "S-1-5-32-545" -RunLevel Highest -LogonType Interactive; 
 Register-ScheduledTask -TaskName 'EQNBroadcast' -Action $action -Principal $principal -Force;
 Start-ScheduledTask 'EQNBroadcast';
-Start-Sleep -Seconds 10; 
-Unregister-ScheduledTask 'EQNBroadcast' -Confirm:$false;
-"Broadcast delivered (WTS + VBS + msg.exe + WPF)"`;
+
+# Clean up task in 5 mins (non-blocking)
+$cleanup = "Start-Sleep -Seconds 300; Unregister-ScheduledTask 'EQNBroadcast' -Confirm:$false";
+Start-Job -ScriptBlock ([ScriptBlock]::Create($cleanup)) | Out-Null;
+
+"Broadcast Layers Triggered Successfully"`;
 
             const res = await fetch('/api/agent', {
                 method: 'PUT',
@@ -294,7 +282,6 @@ Unregister-ScheduledTask 'EQNBroadcast' -Confirm:$false;
             if (data.success) {
                 setMessage({ type: 'success', text: 'Ironclad broadcast triggered. Checking device...' });
                 setInstantMessage('');
-                // Clear message after 5 seconds to avoid "stuck" feeling
                 setTimeout(() => setMessage(null), 5000);
             }
         } catch (err) {
