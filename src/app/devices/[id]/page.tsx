@@ -211,7 +211,7 @@ $logoPath = 'C:/ProgramData/EQNProAgent/logo.png';
 $logoUri = "file:///$logoPath";
 $xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" Title="IT Alert" Height="380" Width="480" WindowStyle="None" AllowsTransparency="True" Background="Transparent" WindowStartupLocation="CenterScreen" Topmost="True">
-    <Border Background="#121212" CornerRadius="16" BorderBrush="#005a9c" BorderThickness="2">
+    <Border Background="#111111" CornerRadius="16" BorderBrush="#005a9c" BorderThickness="2">
         <Grid Margin="25">
             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <Image Grid.Row="0" Source="$$logo" Height="60" Margin="0,0,0,20" Stretch="Uniform"/>
@@ -234,14 +234,18 @@ $window.FindName('btn').Add_Click({$window.Close()});
 $window.Topmost = $true;
 $window.ShowDialog() | Out-Null;
 '@;
+# Delivery Strategy: Immediate msg.exe alert + Branded WPF window
+try { msg * /TIME:300 "${escapedMsg}" } catch {}
+
 $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($UserScript));
-$action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-WindowStyle Hidden -ExecutionPolicy Bypass -EncodedCommand $encoded";
-$principal = New-ScheduledTaskPrincipal -GroupId 'BUILTIN\\Users';
+$action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -EncodedCommand $encoded";
+# Using 'Interactively' to punch through Session 0
+$principal = New-ScheduledTaskPrincipal -GroupId "S-1-5-32-545" -RunLevel Highest; 
 Register-ScheduledTask -TaskName 'EQNBroadcast' -Action $action -Principal $principal -Force;
 Start-ScheduledTask 'EQNBroadcast';
-Start-Sleep -Seconds 2;
+Start-Sleep -Seconds 10;
 Unregister-ScheduledTask 'EQNBroadcast' -Confirm:$false;
-"Broadcast delivered to interactive session"`;
+"Broadcast delivered (msg.exe + WPF)"`;
 
             const res = await fetch('/api/agent', {
                 method: 'PUT',
@@ -254,7 +258,7 @@ Unregister-ScheduledTask 'EQNBroadcast' -Confirm:$false;
             });
             const data = await res.json();
             if (data.success) {
-                setMessage({ type: 'success', text: 'Branded alert broadcast successfully.' });
+                setMessage({ type: 'success', text: 'Corporate alert triggered successfully.' });
                 setInstantMessage('');
             }
         } catch (err) {
