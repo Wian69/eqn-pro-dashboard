@@ -52,10 +52,11 @@ export async function POST(
         console.log(`[API] Script created successfully with ID: ${scriptId}`);
         
         // 4. Wait for propagation (Graph indexing takes a few seconds)
-        console.log('[API] Waiting 3 seconds for script propagation...');
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        console.log('[API] Waiting 5 seconds for script propagation...');
+        await new Promise(resolve => setTimeout(resolve, 5000));
 
         // 5. Assign the script to the specific device
+        // We try both common assignment wrappers and use v1.0
         const assignment = {
             assignments: [
                 {
@@ -68,21 +69,28 @@ export async function POST(
         };
 
         let assigned = false;
-        let lastErr = null;
+        let lastErrorDetails = '';
+        
         for (let attempt = 1; attempt <= 3; attempt++) {
             try {
                 console.log(`[API] Assignment attempt ${attempt} for script ${scriptId} to device ${deviceId}...`);
-                await client.api(`/deviceManagement/deviceManagementScripts/${scriptId}/assign`).version('beta').post(assignment);
+                // Try v1.0 first as it's more stable
+                await client.api(`/deviceManagement/deviceManagementScripts/${scriptId}/assign`).version('v1.0').post(assignment);
                 assigned = true;
                 break;
             } catch (err: any) {
-                lastErr = err;
-                console.warn(`[API] Assignment attempt ${attempt} failed:`, err.message);
-                if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 2000));
+                lastErrorDetails = err.body ? JSON.stringify(err.body) : err.message;
+                console.warn(`[API] Assignment attempt ${attempt} failed:`, lastErrorDetails);
+                
+                // If it's a 404/Not Found, it's definitely propagation
+                if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 3000));
             }
         }
 
-        if (!assigned) throw lastErr || new Error('All assignment attempts failed');
+        if (!assigned) {
+            console.error('[API] Final assignment failure details:', lastErrorDetails);
+            throw new Error(`Assignment failed after retries. Microsoft said: ${lastErrorDetails}`);
+        }
 
         return NextResponse.json({ 
             success: true, 
