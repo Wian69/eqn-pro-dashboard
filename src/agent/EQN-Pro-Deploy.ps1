@@ -9,6 +9,26 @@ if (Test-Path $ErrorLogLocal) { Remove-Item $ErrorLogLocal -Force -ErrorAction S
 $TranscriptPath = Join-Path $PSScriptRoot "deploy_transcript.log"
 try { Start-Transcript -Path $TranscriptPath -Append -ErrorAction SilentlyContinue } catch {}
 
+# Function to handle errors gracefully
+function Handle-FatalError {
+    param($message)
+    $errorMessage = "FATAL ERROR: $message"
+    Write-InstallerLog $errorMessage "Red"
+    $errorMessage | Out-File -FilePath $ErrorLogLocal -Append
+    try { $errorMessage | Set-Clipboard -ErrorAction SilentlyContinue } catch {}
+    
+    if ([Environment]::UserInteractive) {
+        Write-Host "`nAn error occurred. The full log can be found at: $TranscriptPath" -ForegroundColor Cyan
+        Write-Host "The error has been copied to your clipboard." -ForegroundColor Yellow
+        Write-Host "Opening the error log in Notepad for you..." -ForegroundColor Gray
+        Start-Process notepad.exe -ArgumentList $TranscriptPath
+        Write-Host "Press any key to close..." -ForegroundColor Gray
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    }
+    try { Stop-Transcript } catch {}
+    exit 1
+}
+
 # 0. Check for Administrator privileges
 $currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
 $principal = New-Object Security.Principal.WindowsPrincipal($currentIdentity)
@@ -301,11 +321,13 @@ while ($true) {
     
     try {
         Unregister-ScheduledTask -TaskName "EQNProLiveAgent" -Confirm:$false -ErrorAction SilentlyContinue
-        Register-ScheduledTask -TaskName "EQNProLiveAgent" -Action $Action -Trigger $Trigger1, $Trigger2 -Settings $Settings -User "SYSTEM" -RunLevel Highest
+        Register-ScheduledTask -TaskName "EQNProLiveAgent" -Action $Action -Trigger $Trigger1, $Trigger2 -Settings $Settings -User "SYSTEM" -RunLevel Highest -ErrorAction Stop
         Write-InstallerLog "Scheduled Task 'EQNProLiveAgent' registered successfully." "Green"
     }
     catch {
-        Write-InstallerLog "ERROR: Failed to register task. Check Admin permissions." "Red"
+        $msg = "Failed to register task. Details: $($_.Exception.Message)"
+        Write-InstallerLog "ERROR: $msg" "Red"
+        $msg | Out-File -FilePath $ErrorLogLocal -Append
     }
 }
 

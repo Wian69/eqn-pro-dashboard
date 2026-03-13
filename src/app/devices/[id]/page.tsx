@@ -318,11 +318,6 @@ Unregister-ScheduledTask 'EQNBroadcast' -Confirm:$false;
                 </div>
 
                 <div className="management-strip">
-                    {!agentData && (
-                        <button className="mgmt-btn accent" disabled={!!actionLoading} onClick={deployAgent}>
-                            <Cloud size={18} className={actionLoading === 'deploy' ? 'animate-spin' : ''} /> {actionLoading === 'deploy' ? 'Queuing...' : 'Deploy Agent'}
-                        </button>
-                    )}
                     <button className="mgmt-btn danger" disabled={!!actionLoading} onClick={() => handleAction('rebootNow')}>
                         <Power size={18} /> {actionLoading === 'rebootNow' ? '' : 'Restart'}
                     </button>

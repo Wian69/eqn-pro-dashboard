@@ -190,17 +190,11 @@ export default function Devices() {
                                         {new Date(dev.lastSyncDateTime).toLocaleDateString()}
                                     </td>
                                     <td style={{ padding: '16px', textAlign: 'right' }}>
-                                        {!isAgent && (
-                                            <button 
-                                                onClick={(e) => deployAgent(dev.id, e)}
-                                                disabled={deploying === dev.id}
-                                                style={{ padding: '6px 12px', borderRadius: '6px', background: 'var(--glass)', border: '1px solid var(--accent)', color: 'var(--accent)', fontSize: '0.75rem', cursor: 'pointer' }}
-                                            >
-                                                {deploying === dev.id ? 'Queuing...' : 'Deploy Agent'}
-                                            </button>
-                                        )}
                                         {isAgent && (
                                             <span style={{ color: '#22c55e', fontSize: '0.75rem' }}>Active Agent</span>
+                                        )}
+                                        {!isAgent && (
+                                            <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Management Only</span>
                                         )}
                                     </td>
                                 </tr>
