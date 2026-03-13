@@ -207,8 +207,14 @@ export default function DeviceDetails() {
             const escapedMsg = instantMessage.replace(/"/g, '""').replace(/'/g, "''");
             const psPayload = `$UserScript = @'
 Add-Type -AssemblyName PresentationFramework;
+Add-Type -AssemblyName System.Windows.Forms;
 $logoPath = 'C:/ProgramData/EQNProAgent/logo.png';
 $logoUri = "file:///$logoPath";
+
+# 1. Fallback: Simple VBScript Popup (Very high success rate from Session 0)
+try { (New-Object -ComObject WScript.Shell).Popup("${escapedMsg}", 0, "IT Support Alert", 0x40 + 0x1000) } catch {}
+
+# 2. Branded WPF Window
 $xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" Title="IT Alert" Height="380" Width="480" WindowStyle="None" AllowsTransparency="True" Background="Transparent" WindowStartupLocation="CenterScreen" Topmost="True">
     <Border Background="#111111" CornerRadius="16" BorderBrush="#005a9c" BorderThickness="2">
@@ -234,18 +240,27 @@ $window.FindName('btn').Add_Click({$window.Close()});
 $window.Topmost = $true;
 $window.ShowDialog() | Out-Null;
 '@;
-# Delivery Strategy: Immediate msg.exe alert + Branded WPF window
-try { msg * /TIME:300 "${escapedMsg}" } catch {}
+
+# Multi-layered Delivery Strategy
+try { 
+    # Try all common interactive sessions
+    msg console /TIME:300 "${escapedMsg}" 
+    msg * /TIME:300 "${escapedMsg}"
+    msg 1 /TIME:300 "${escapedMsg}"
+    msg 2 /TIME:300 "${escapedMsg}"
+} catch {}
 
 $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($UserScript));
 $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -EncodedCommand $encoded";
-# Using 'Interactively' to punch through Session 0
-$principal = New-ScheduledTaskPrincipal -GroupId "S-1-5-32-545" -RunLevel Highest; 
+
+# CRITICAL: Use 'Interactive' LogonType and target the Users group
+# Register-ScheduledTask -TaskName 'EQNBroadcast' -Action $action -User "INTERACTIVE" -RunLevel Highest -Force;
+$principal = New-ScheduledTaskPrincipal -GroupId "S-1-5-32-545" -RunLevel Highest -LogonType Interactive; 
 Register-ScheduledTask -TaskName 'EQNBroadcast' -Action $action -Principal $principal -Force;
 Start-ScheduledTask 'EQNBroadcast';
-Start-Sleep -Seconds 10;
+Start-Sleep -Seconds 15; # Give more time for interaction
 Unregister-ScheduledTask 'EQNBroadcast' -Confirm:$false;
-"Broadcast delivered (msg.exe + WPF)"`;
+"Broadcast delivered (VBS + msg.exe + WPF)"`;
 
             const res = await fetch('/api/agent', {
                 method: 'PUT',
@@ -258,7 +273,7 @@ Unregister-ScheduledTask 'EQNBroadcast' -Confirm:$false;
             });
             const data = await res.json();
             if (data.success) {
-                setMessage({ type: 'success', text: 'Corporate alert triggered successfully.' });
+                setMessage({ type: 'success', text: 'Multi-layer broadcast triggered successfully.' });
                 setInstantMessage('');
             }
         } catch (err) {
