@@ -34,61 +34,26 @@ export async function POST(
             `$serverUrl = "${serverUrl}" # Dynamically injected by EQN Pro API`
         );
 
-        // 3. Create the Shell Script in Intune
-        // Note: Graph API for Shell Scripts is /deviceManagement/deviceShellScripts
-        const shellScript = {
-            displayName: `EQN Pro Agent Deployment - ${new Date().toISOString()}`,
-            description: `Automated deployment of EQN Pro Agent to device ${deviceId}`,
+        // 3. Execute the script directly on the device
+        // This is a direct action that doesn't require creating a script object or assignment
+        console.log(`[API] Executing direct cloud script on device ${deviceId}...`);
+        
+        const payload = {
             scriptContent: Buffer.from(scriptContent).toString('base64'),
-            runAsAccount: 'system',
-            fileName: 'EQN-Pro-Deploy.ps1',
-            roleScopeTagIds: ['0']
+            runAs64: true,
+            enforceSignatureCheck: false,
+            runAsAccount: 'system'
         };
 
-        console.log('[API] Creating Intune PowerShell Script...');
-        // We use the beta endpoint because direct device assignment (configurationManagerExternalDeviceTarget) is a beta feature
-        const createdScript = await client.api('/deviceManagement/deviceManagementScripts').version('beta').post(shellScript);
-        const scriptId = createdScript.id;
-        console.log(`[API] Script created successfully with ID: ${scriptId}`);
-        
-        // 4. Wait for propagation (Graph indexing takes a few seconds)
-        console.log('[API] Waiting 10 seconds for script propagation...');
-        await new Promise(resolve => setTimeout(resolve, 10000));
-
-        // 5. Assign the script to the specific device
-        // CRITICAL: Scripts use 'deviceManagementScriptAssignments' as the key, NOT 'assignments'
-        const assignment = {
-            deviceManagementScriptAssignments: [
-                {
-                    target: {
-                        "@odata.type": "#microsoft.graph.configurationManagerExternalDeviceTarget",
-                        "managedDeviceId": deviceId
-                    }
-                }
-            ]
-        };
-
-        let assigned = false;
-        let lastErrorDetails = '';
-        
-        for (let attempt = 1; attempt <= 3; attempt++) {
-            try {
-                console.log(`[API] Assignment attempt ${attempt} for script ${scriptId} to device ${deviceId}...`);
-                // We use beta because configurationManagerExternalDeviceTarget is a beta-heavy feature
-                await client.api(`/deviceManagement/deviceManagementScripts/${scriptId}/assign`).version('beta').post(assignment);
-                assigned = true;
-                break;
-            } catch (err: any) {
-                lastErrorDetails = err.body ? JSON.stringify(err.body) : err.message;
-                console.warn(`[API] Assignment attempt ${attempt} failed:`, lastErrorDetails);
-                
-                if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 5000));
-            }
-        }
-
-        if (!assigned) {
-            console.error('[API] Final assignment failure details:', lastErrorDetails);
-            throw new Error(`Assignment failed after retries. Microsoft said: ${lastErrorDetails}`);
+        try {
+            await client.api(`/deviceManagement/managedDevices/${deviceId}/microsoft.graph.executeCloudScript`)
+                .version('beta')
+                .post(payload);
+            
+            console.log(`[API] Cloud script execution triggered successfully for device ${deviceId}`);
+        } catch (err: any) {
+            console.error('[API] Action Error:', err.message, err.body);
+            throw err;
         }
 
         return NextResponse.json({ 
