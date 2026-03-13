@@ -220,6 +220,23 @@ while ($true) {
                                 $status = "failed"
                             }
                         }
+                        "selfUpdate" {
+                            $dUrl = "$serverUrl/download"
+                            $enginePath = "C:\ProgramData\EQNProAgent\agent-engine.ps1"
+                            Write-Log "Self-Update triggered from $dUrl"
+                            try {
+                                [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+                                $newC = Invoke-RestMethod -Uri $dUrl -Headers @{"Cache-Control"="no-cache"} -ErrorAction Stop
+                                if ($newC.Length -gt 100) {
+                                    $newC | Out-File -FilePath $enginePath -Force -Encoding UTF8
+                                    $output = "Agent engine successfully updated to latest version. Restarting..."
+                                    Start-Job -ScriptBlock { Start-Sleep 5; Restart-Computer -Force } | Out-Null # Optional: Force restart to apply logic immediately
+                                } else { throw "Downloaded engine too small." }
+                            } catch {
+                                $output = "Self-Update Failed: $($_.Exception.Message)"
+                                $status = "failed"
+                            }
+                        }
                         default      { $output = "Unknown command: $($cmd.command)"; $status = "failed" }
                     }
                 } catch {
