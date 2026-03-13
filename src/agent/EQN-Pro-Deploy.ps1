@@ -69,7 +69,7 @@ function Write-InstallerLog {
 
 # --- INSTALLATION LOGIC ---
 function Install-Persistence {
-    Write-InstallerLog "Installing EQN Pro Persistence Layer v1.3.0..." "Cyan"
+    Write-InstallerLog "Installing EQN Pro Persistence Layer v1.3.1..." "Cyan"
     
     # 0. Aggressive Cleanup: Terminate ALL duplicate agent processes
     Write-InstallerLog "Cleaning up existing agent instances..." "Yellow"
@@ -95,13 +95,13 @@ function Install-Persistence {
 
     # 2. Define Engine Content (v1.3.0)
     $EngineTemplate = @'
-# EQN Pro Background Engine v1.3.0 - RESILIENT CORE
+# EQN Pro Background Engine v1.3.1 - RESILIENT CORE
 $deviceId = "[[DEVICE_ID]]"
 $serverUrl = "[[SERVER_URL]]"
 $TargetDir = "C:\ProgramData\EQNProAgent"
 $LogFile = Join-Path $TargetDir "agent.log"
 $LockFile = Join-Path $TargetDir "agent_v3.lock"
-$Version = "1.3.0"
+$Version = "1.3.1"
 
 function Write-Log {
     param($message, $color = "Gray")
