@@ -208,13 +208,30 @@ export default function DeviceDetails() {
             const psPayload = `$UserScript = @'
 Add-Type -AssemblyName PresentationFramework;
 Add-Type -AssemblyName System.Windows.Forms;
-$logoPath = 'C:/ProgramData/EQNProAgent/logo.png';
-$logoUri = "file:///$logoPath";
 
-# 1. Fallback: Simple VBScript Popup (Very high success rate from Session 0)
+# 1. Fallback: WTSSendMessage (The ultimate Session 0 bypass)
+$WTSDefinition = @"
+using System;
+using System.Runtime.InteropServices;
+public class WTS {
+    [DllImport("wtsapi32.dll", SetLastError = true)]
+    public static extern bool WTSSendMessage(IntPtr hServer, int SessionId, String pTitle, int TitleLength, String pMessage, int MessageLength, int Style, int Timeout, out int pResponse, bool bWait);
+}
+"@
+try {
+    Add-Type -TypeDefinition $WTSDefinition -ErrorAction SilentlyContinue
+    $resp = 0
+    # Try common sessions (0 is system, 1-5 are usually users)
+    1..5 | ForEach-Object { [WTS]::WTSSendMessage([IntPtr]::Zero, $_, "IT Support Alert", 16, "${escapedMsg}", ${escapedMsg.length}, 0x40, 0, [ref]$resp, $false) }
+} catch {}
+
+# 2. Fallback: msg.exe and VBS
+try { msg * /TIME:300 "${escapedMsg}" } catch {}
 try { (New-Object -ComObject WScript.Shell).Popup("${escapedMsg}", 0, "IT Support Alert", 0x40 + 0x1000) } catch {}
 
-# 2. Branded WPF Window
+# 3. Branded WPF Window
+$logoPath = 'C:/ProgramData/EQNProAgent/logo.png';
+$logoUri = "file:///$logoPath";
 $xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" Title="IT Alert" Height="380" Width="480" WindowStyle="None" AllowsTransparency="True" Background="Transparent" WindowStartupLocation="CenterScreen" Topmost="True">
     <Border Background="#111111" CornerRadius="16" BorderBrush="#005a9c" BorderThickness="2">
@@ -241,26 +258,35 @@ $window.Topmost = $true;
 $window.ShowDialog() | Out-Null;
 '@;
 
-# Multi-layered Delivery Strategy
-try { 
-    # Try all common interactive sessions
-    msg console /TIME:300 "${escapedMsg}" 
-    msg * /TIME:300 "${escapedMsg}"
-    msg 1 /TIME:300 "${escapedMsg}"
-    msg 2 /TIME:300 "${escapedMsg}"
-} catch {}
-
 $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($UserScript));
 $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -EncodedCommand $encoded";
-
-# CRITICAL: Use 'Interactive' LogonType and target the Users group
-# Register-ScheduledTask -TaskName 'EQNBroadcast' -Action $action -User "INTERACTIVE" -RunLevel Highest -Force;
 $principal = New-ScheduledTaskPrincipal -GroupId "S-1-5-32-545" -RunLevel Highest -LogonType Interactive; 
 Register-ScheduledTask -TaskName 'EQNBroadcast' -Action $action -Principal $principal -Force;
 Start-ScheduledTask 'EQNBroadcast';
-Start-Sleep -Seconds 15; # Give more time for interaction
+Start-Sleep -Seconds 30; # Increased persistence
 Unregister-ScheduledTask 'EQNBroadcast' -Confirm:$false;
-"Broadcast delivered (VBS + msg.exe + WPF)"`;
+"Broadcast delivered (WTS + VBS + msg.exe + WPF)"`;
+
+            const res = await fetch('/api/agent', {
+                method: 'PUT',
+                body: JSON.stringify({
+                    deviceId: agentData.deviceId,
+                    command: 'runScript',
+                    params: { code: psPayload }
+                }),
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await res.json();
+            if (data.success) {
+                setMessage({ type: 'success', text: 'Ironclad broadcast triggered. Checking device...' });
+                setInstantMessage('');
+            }
+        } catch (err) {
+            setMessage({ type: 'error', text: 'Failed to broadcast message.' });
+        } finally {
+            setActionLoading(null);
+        }
+    };
 
             const res = await fetch('/api/agent', {
                 method: 'PUT',
