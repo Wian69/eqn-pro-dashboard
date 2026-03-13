@@ -38,7 +38,7 @@ function Install-Persistence {
     # 0. Aggressive Cleanup: Terminate ALL duplicate agent processes
     Write-InstallerLog "Cleaning up existing agent instances..." "Yellow"
     $currentPid = $PID
-    $agentProcs = Get-WmiObject Win32_Process | Where-Object { ($_.CommandLine -like "*agent-engine.ps1*" -or $_.Name -eq "powershell.exe") -and $_.ProcessId -ne $currentPid }
+    $agentProcs = Get-CimInstance Win32_Process | Where-Object { ($_.CommandLine -like "*agent-engine.ps1*" -or $_.Name -eq "powershell.exe") -and $_.ProcessId -ne $currentPid }
     foreach ($p in $agentProcs) { 
         if ($p.CommandLine -like "*agent-engine.ps1*") {
             try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch {}
@@ -86,7 +86,7 @@ function Get-PulseLock {
                 $lastPulse = [DateTime]$lockData.timestamp
                 $timespan = (Get-Date) - $lastPulse
                 
-                if ($timespan.TotalSeconds -gt 60) {
+                if ($timespan.TotalSeconds -gt 300) {
                     Write-Log "STALE LOCK DETECTED (Last pulse: $($timespan.TotalSeconds)s ago). Cleaning up PID $($lockData.pid)..." "Yellow"
                     try { Stop-Process -Id $lockData.pid -Force -ErrorAction SilentlyContinue } catch { }
                     Remove-Item $LockFile -Force -ErrorAction SilentlyContinue
@@ -156,10 +156,12 @@ function Get-Telemetry {
         $sw = $null
         $Global:NetCache.swTick++
         if ($Global:NetCache.swTick -ge 60) { # Every 10 mins
+            Update-Pulse
             $Global:LastSoftware = Get-Software
             $sw = $Global:LastSoftware
             $Global:NetCache.swTick = 0
             Write-Log "Software inventory scanned ($($sw.Count) items)." "Gray"
+            Update-Pulse
         }
 
         return @{
@@ -256,7 +258,8 @@ while ($true) {
                         "selfUpdate" {
                             try {
                                 Write-Log "UPGRADE INITIATED (v$Global:AgentVersion -> v$($cmd.params.version))" "Magenta"
-                                $cmd.params.code | Out-File -FilePath $MyInvocation.MyCommand.Path -Force
+                                $updatePath = "C:\ProgramData\EQNProAgent\agent-engine.ps1"
+                                $cmd.params.code | Out-File -FilePath $updatePath -Force
                                 Send-Result -commandId $cmd.id -status "completed" -output "Agent updated to v$($cmd.params.version). Restarting..."
                                 exit
                             } catch { Send-Result -commandId $cmd.id -status "failed" -errText "Update failed: $($_.Exception.Message)" }
@@ -306,3 +309,9 @@ try {
     }
 } catch {}
 Write-InstallerLog "EQN Pro Deployment Finished." "Green"
+
+# Pause if running interactively
+if ([Environment]::UserInteractive) {
+    Write-Host "`nPress any key to close..." -ForegroundColor Gray
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+}
