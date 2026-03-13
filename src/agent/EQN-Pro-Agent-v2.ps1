@@ -8,12 +8,12 @@
     software inventory, and remote command execution.
     Supports native WPF broadcasts and direct device control.
 
-.VERSION 2.0.0
+.VERSION 2.1.0
 #>
 
 # --- Configuration & Identity ---
 $serverUrl = "https://eqn-pro-dashboard.vercel.app/api/agent" # Hardcoded for packaging; injected for dynamic deploy
-$agentVersion = "2.0.0"
+$agentVersion = "2.1.0"
 $logPath = "C:/ProgramData/EQNProAgent/agent.log"
 $logoPath = "C:/ProgramData/EQNProAgent/logo.png"
 
@@ -199,6 +199,15 @@ while ($true) {
 
         $response = Invoke-RestMethod -Uri $serverUrl -Method Post -Body ($body | ConvertTo-Json) -ContentType "application/json" -TimeoutSec 15
         
+        # --- Auto-Update (OTA) Check ---
+        if ($response.shouldUpdate -and $response.latestVersion) {
+            Write-Log "OTA Notice: Current v$agentVersion vs Latest v$($response.latestVersion). Triggering Auto-Update."
+            # Reuse the selfUpdate logic logic
+            $updateCmd = @{ id = "ota-auto"; command = "selfUpdate" }
+            if ($null -eq $response.commands) { $response.commands = @($updateCmd) }
+            else { $response.commands += $updateCmd }
+        }
+
         if ($response.commands) {
             foreach ($cmd in $response.commands) {
                 $cmdId = $cmd.id
@@ -263,10 +272,12 @@ while ($true) {
                                 $newC = Invoke-RestMethod -Uri $dUrl -Headers @{"Cache-Control"="no-cache"} -ErrorAction Stop
                                 if ($newC.Length -gt 100) {
                                     $newC | Out-File -FilePath $enginePath -Force -Encoding UTF8
-                                    $output = "Agent engine successfully updated to latest version. Restarting..."
+                                    $output = "Agent engine successfully updated to latest version. Process exiting for reload."
                                     Send-Result -commandId $cmdId -status "completed" -output $output -errorText ""
-                                    Start-Job -ScriptBlock { Start-Sleep 5; Restart-Computer -Force } | Out-Null
-                                    continue # Skip redundant Send-Result below as we just sent it
+                                    Write-Log "Update applied. Exiting process..."
+                                    # Use a job to exit after a tiny delay to ensure output is logged/sent
+                                    Start-Job -ScriptBlock { Start-Sleep 2; Stop-Process -Id $using:PID -Force } | Out-Null
+                                    exit
                                 } else { throw "Downloaded engine too small." }
                             } catch {
                                 $output = "Self-Update Failed: $($_.Exception.Message)"

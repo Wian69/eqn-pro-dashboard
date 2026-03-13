@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import fs from 'fs';
+import path from 'path';
 
 export const dynamic = 'force-dynamic';
 
@@ -143,6 +145,16 @@ export async function POST(request: Request) {
             .eq('status', 'pending');
 
         if (cmdError) throw cmdError;
+        
+        // Fetch latest version from manifest
+        let latestVersion = agentVersion;
+        try {
+            const manifestPath = path.join(process.cwd(), 'latest_agent.json');
+            const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+            latestVersion = manifest.version;
+        } catch (e) {
+            console.warn('[API] Failed to read latest_agent.json for OTA check');
+        }
 
         // Map to format agent expects
         const commands = pendingCommands?.map(c => ({
@@ -151,7 +163,12 @@ export async function POST(request: Request) {
             params: c.params
         })) || [];
 
-        return NextResponse.json({ success: true, commands });
+        return NextResponse.json({ 
+            success: true, 
+            commands,
+            latestVersion,
+            shouldUpdate: latestVersion !== agentVersion
+        });
     } catch (error: any) {
         console.error('[API] POST /api/agent error:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
