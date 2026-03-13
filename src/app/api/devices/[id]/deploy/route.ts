@@ -13,30 +13,28 @@ export async function POST(
     try {
         const client = getGraphClient();
         
-        // 1. Prepare the deployment script
-        // We use the unified version of the script
-        const scriptPath = path.join(process.cwd(), 'src/agent/EQN-Pro-Deploy.ps1');
-        if (!fs.existsSync(scriptPath)) {
-            throw new Error('Deployment script template not found.');
+        // 1. Prepare the Deployment Script (v2.0 Global Edition)
+        const agentFilePath = path.join(process.cwd(), 'src', 'agent', 'EQN-Pro-Agent-v2.ps1');
+        let scriptContent = '';
+        
+        if (fs.existsSync(agentFilePath)) {
+            scriptContent = fs.readFileSync(agentFilePath, 'utf8');
+        } else {
+            console.warn('[API] v2 Agent not found at path, falling back to v1.3');
+            const fallbackPath = path.join(process.cwd(), 'src', 'agent', 'EQN-Pro-Deploy.ps1');
+            scriptContent = fs.readFileSync(fallbackPath, 'utf8');
         }
 
-        let scriptContent = fs.readFileSync(scriptPath, 'utf8');
-
-        // 2. Inject dynamic server URL if needed
-        const host = request.headers.get('host');
-        const protocol = host?.includes('localhost') ? 'http' : 'https';
-        const serverUrl = `${protocol}://${host}/api/agent`;
-        
-        // Replace the serverUrl in the script with a robust regex
-        // Matches $serverUrl = "..." with optional trailing spaces and comments
+        // 2. Inject dynamic server URL
+        // We use the production URL for global reliability
+        const serverUrl = 'https://eqn-pro-dashboard.vercel.app/api/agent';
         scriptContent = scriptContent.replace(
-            /\$serverUrl = "https:\/\/.*?"\s*(#.*)?/g, 
+            /^\$serverUrl\s*=\s*".*?"(?:\s*#.*)?/m,
             `$serverUrl = "${serverUrl}" # Dynamically injected by EQN Pro API`
         );
 
-        // 3. Execute the script directly on the device
-        // This is a direct action that doesn't require creating a script object or assignment
-        console.log(`[API] Executing direct cloud script on device ${deviceId}...`);
+        // 3. Execute the script directly on the device via Graph Action
+        console.log(`[API] Executing direct v2.0 cloud script on device ${deviceId}...`);
         
         const payload = {
             scriptContent: Buffer.from(scriptContent).toString('base64'),
@@ -45,27 +43,22 @@ export async function POST(
             runAsAccount: 'system'
         };
 
-        try {
-            await client.api(`/deviceManagement/managedDevices/${deviceId}/microsoft.graph.executeCloudScript`)
-                .version('beta')
-                .post(payload);
-            
-            console.log(`[API] Cloud script execution triggered successfully for device ${deviceId}`);
-        } catch (err: any) {
-            console.error('[API] Action Error:', err.message, err.body);
-            throw err;
-        }
+        await client.api(`/deviceManagement/managedDevices/${deviceId}/microsoft.graph.executeCloudScript`)
+            .version('beta')
+            .post(payload);
+        
+        console.log(`[API] Cloud script execution triggered successfully for device ${deviceId}`);
 
         return NextResponse.json({ 
             success: true, 
-            message: 'Deployment queued in Intune.',
-            scriptId: scriptId
+            message: 'Deployment triggered successfully via direct cloud action.'
         });
 
     } catch (error: any) {
-        console.error('[API] Intune Deployment Error:', error.message);
+        const errorDetails = error.body ? JSON.stringify(error.body) : error.message;
+        console.error('[API] Intune Deployment Error:', errorDetails);
         return NextResponse.json(
-            { error: "Failed to queue deployment in Intune", details: error.message },
+            { error: "Failed to trigger direct deployment", details: errorDetails },
             { status: 500 }
         );
     }
