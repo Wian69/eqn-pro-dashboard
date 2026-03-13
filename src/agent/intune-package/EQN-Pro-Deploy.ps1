@@ -56,19 +56,25 @@ if (!(Test-Path $targetPath) -or $args -contains "-force") {
     Sync-AgentEngine
 }
 
-# 2. Register Persistence (if not already there)
+# 2. Register/Update Persistence
 $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$targetPath`""
 $trigger1 = New-ScheduledTaskTrigger -AtStartup
 $trigger2 = New-ScheduledTaskTrigger -Once -At (Get-Date).ToString("HH:mm") -RepetitionInterval (New-TimeSpan -Minutes 1)
 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -RestartCount 5 -RestartInterval (New-TimeSpan -Minutes 1)
 
-if (!(Get-ScheduledTask -TaskName "EQNProLiveAgent" -ErrorAction SilentlyContinue)) {
+$existingTask = Get-ScheduledTask -TaskName "EQNProLiveAgent" -ErrorAction SilentlyContinue
+if (!$existingTask) {
     Write-BootLog "Registering persistence task..."
     Register-ScheduledTask -TaskName "EQNProLiveAgent" -Action $action -Trigger $trigger1, $trigger2 -Settings $settings -User "SYSTEM" -RunLevel Highest | Out-Null
+} else {
+    # Update existing task logic/args if changed
+    Write-BootLog "Updating existing persistence task..."
+    Set-ScheduledTask -TaskName "EQNProLiveAgent" -Action $action -Trigger $trigger1, $trigger2 -Settings $settings -User "SYSTEM" -RunLevel Highest | Out-Null
 }
 
-# 3. Launch the engine (asynchronously in background)
+# 3. Launch the engine (asynchronously)
 if ((Get-ScheduledTask -TaskName "EQNProLiveAgent").State -ne "Running") {
+    Write-BootLog "Starting Agent Engine..."
     Start-ScheduledTask -TaskName "EQNProLiveAgent"
 }
 

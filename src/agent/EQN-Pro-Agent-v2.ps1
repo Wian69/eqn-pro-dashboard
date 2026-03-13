@@ -235,10 +235,17 @@ while ($true) {
                             $args = $cmd.params.args
                             $fName = $cmd.params.fileName
                             $tPath = Join-Path "C:\ProgramData\EQNProAgent" $fName
-                            Write-Log "Installing App: $fName from $url"
+                            
+                            Write-Log "Installing App: $fName"
                             try {
                                 Invoke-WebRequest -Uri $url -OutFile $tPath -ErrorAction Stop
-                                $p = Start-Process -FilePath $tPath -ArgumentList $args -Wait -PassThru -WindowStyle Hidden
+                                
+                                # Automatic Silent Flags for common installers
+                                if ($fName -like "*.msi" -and $args -notmatch "/qn") { $args += " /qn /norestart" }
+                                if ($fName -like "*.exe" -and $null -eq $args) { $args = "/S" } # Generic fallback
+
+                                Write-Log "Running Installer: $fName $args"
+                                $p = Start-Process -FilePath $tPath -ArgumentList $args -Wait -PassThru -WindowStyle Hidden -ErrorAction Stop
                                 $output = "Installation of $fName completed with Exit Code: $($p.ExitCode)"
                                 Remove-Item $tPath -Force -ErrorAction SilentlyContinue
                             } catch {
