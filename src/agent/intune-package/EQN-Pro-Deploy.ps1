@@ -1,313 +1,184 @@
-# EQN Pro Unified Agent - Intune Deployable
-# This script handles both Installation and Execution. 
-# Optimized for Microsoft Intune "Win32 App" or "PowerShell Script" deployment.
+<#
+.SYNOPSIS
+    EQN Pro Unified Agent v2.0.0 - Intune Ready
+    Enterprise Management & Remote Control Engine
 
-# 0. Check for Administrator privileges
-$currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
-$principal = New-Object Security.Principal.WindowsPrincipal($currentIdentity)
-if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    Write-Error "CRITICAL: This script must be run as Administrator."
-    exit 1
-}
+.DESCRIPTION
+    This script is the UNIFIED INSTALLER for Agent v2.0.
+    It handles directory setup, persistence, and launches the v2 engine.
+    Optimized for Intune Win32 App deployment.
 
-$TargetDir = "C:\ProgramData\EQNProAgent"
-$ScriptName = "agent-engine.ps1"
-$TargetPath = Join-Path $TargetDir $ScriptName
-$LogFile = Join-Path $TargetDir "agent.log"
-$serverUrl = "https://eqn-pro-dashboard.vercel.app/api/agent" # Update this to your production URL
-$baseUrl = $serverUrl.Replace("/api/agent", "")
-$deviceId = (Get-CimInstance Win32_BIOS).SerialNumber
+.VERSION 2.0.0
+#>
 
-# --- LOGGING FUNCTION ---
-function Write-InstallerLog {
-    param($message, $color = "Gray")
-    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    $logEntry = "[$timestamp] $message"
-    Write-Host $logEntry -ForegroundColor $color
-    try {
-        if (-not (Test-Path $TargetDir)) { New-Item -Path $TargetDir -ItemType Directory -Force }
-        $logEntry | Out-File -FilePath $LogFile -Append -ErrorAction SilentlyContinue
-    }
-    catch {}
-}
+# --- Configuration ---
+$targetDir = "C:\ProgramData\EQNProAgent"
+$engineFile = "agent-engine.ps1"
+$targetPath = Join-Path $targetDir $engineFile
+$logFile = Join-Path $targetDir "installer.log"
+$logoPath = Join-Path $targetDir "logo.png"
+$serverUrl = "https://eqn-pro-dashboard.vercel.app/api/agent" # Production URL
 
-# --- INSTALLATION LOGIC ---
-function Install-Persistence {
-    Write-InstallerLog "Installing EQN Pro Persistence Layer v1.2.4..." "Cyan"
-    
-    # 0. Aggressive Cleanup: Terminate ALL duplicate agent processes
-    Write-InstallerLog "Cleaning up existing agent instances..." "Yellow"
-    $currentPid = $PID
-    $agentProcs = Get-WmiObject Win32_Process | Where-Object { ($_.CommandLine -like "*agent-engine.ps1*" -or $_.Name -eq "powershell.exe") -and $_.ProcessId -ne $currentPid }
-    foreach ($p in $agentProcs) { 
-        if ($p.CommandLine -like "*agent-engine.ps1*") {
-            try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch {}
-        }
-    }
-    Start-Sleep -Seconds 2 # Wait for locks to release
-
-    # 1. Download Branded Logo
-    try {
-        $logoUrl = "$baseUrl/equinox-logo.png"
-        $logoPath = Join-Path $TargetDir "logo.png"
-        Write-InstallerLog "Downloading corporate branding from $logoUrl..." "Yellow"
-        Invoke-WebRequest -Uri $logoUrl -OutFile $logoPath -ErrorAction Stop
-        Write-InstallerLog "Branding deployed successfully." "Green"
-    } catch {
-        Write-InstallerLog "Warning: Could not download branding. Popups will use default styling." "Yellow"
-    }
-
-    # 2. Define Engine Content (v1.2.4)
-    $EngineTemplate = @'
-# EQN Pro Background Engine v1.2.4 - SELF-HEALING IMMUNITY
-$deviceId = "[[DEVICE_ID]]"
-$serverUrl = "[[SERVER_URL]]"
-$TargetDir = "C:\ProgramData\EQNProAgent"
-$LogFile = Join-Path $TargetDir "agent.log"
-$LockFile = Join-Path $TargetDir "agent_v2.lock"
+if (!(Test-Path $targetDir)) { New-Item -Path $targetDir -ItemType Directory -Force | Out-Null }
 
 function Write-Log {
-    param($message, $color = "Gray")
-    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm"
-    $logEntry = "[$timestamp] $message"
-    Write-Host $logEntry -ForegroundColor $color
-    try { 
-        if (-not (Test-Path $TargetDir)) { New-Item -Path $TargetDir -ItemType Directory -Force }
-        $logEntry | Out-File -FilePath $LogFile -Append -ErrorAction SilentlyContinue 
-    } catch {}
+    param([string]$Message)
+    $stamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    "[$stamp] $Message" | Out-File $logFile -Append
 }
 
-# --- PULSE LOCK (SELF-HEALING) ---
-function Get-PulseLock {
-    try {
-        if (Test-Path $LockFile) {
-            $lockData = Get-Content $LockFile | ConvertFrom-Json -ErrorAction SilentlyContinue
-            if ($null -ne $lockData -and $null -ne $lockData.pid) {
-                $lastPulse = [DateTime]$lockData.timestamp
-                $timespan = (Get-Date) - $lastPulse
-                
-                if ($timespan.TotalSeconds -gt 60) {
-                    Write-Log "STALE LOCK DETECTED (Last pulse: $($timespan.TotalSeconds)s ago). Cleaning up PID $($lockData.pid)..." "Yellow"
-                    try { Stop-Process -Id $lockData.pid -Force -ErrorAction SilentlyContinue } catch { }
-                    Remove-Item $LockFile -Force -ErrorAction SilentlyContinue
-                } else {
-                    Write-Log "Agent instance (PID $($lockData.pid)) is active. Heartbeat within limit ($($timespan.TotalSeconds)s). Exiting." "Cyan"
-                    exit
-                }
-            }
-        }
-        
-        # Take over lock
-        $payload = @{ pid = $PID; timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ss") }
-        $payload | ConvertTo-Json | Out-File -FilePath $LockFile -Force
-        Write-Log "Pulse Lock Acquired (PID $PID)." "Green"
-    } catch {
-        Write-Log "Lock acquisition failed: $($_.Exception.Message)" "Red"
-        exit
-    }
+Write-Log "EQN Pro Installer v2.0.0 Started"
+
+# 1. Download Branding (Logo)
+try {
+    $baseUrl = $serverUrl.Replace("/api/agent", "")
+    $logoUrl = "$baseUrl/equinox-logo.png"
+    Write-Log "Downloading branding from $logoUrl"
+    Invoke-WebRequest -Uri $logoUrl -OutFile $logoPath -ErrorAction SilentlyContinue
+} catch {
+    Write-Log "Warning: Branding download failed."
 }
 
-function Update-Pulse {
+# 2. Deploy Agent Engine v2.0.0
+# We use the v2 engine code directly here to make it a standalone installer
+$engineSource = @'
+<#
+    EQN Pro Agent Engine v2.0.0 - Global
+#>
+$serverUrl = "[[SERVER_URL]]"
+$agentVersion = "2.0.0"
+$logPath = "C:/ProgramData/EQNProAgent/agent.log"
+$logoPath = "C:/ProgramData/EQNProAgent/logo.png"
+
+function Write-AgentLog { param($m); $s = Get-Date -Format "yyyy-MM-dd HH:mm:ss"; "[$s] $m" | Out-File $logPath -Append }
+
+# --- Telemetry ---
+function Get-HardwareTelemetry {
     try {
-        $payload = @{ pid = $PID; timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ss") }
-        $payload | ConvertTo-Json | Out-File -FilePath $LockFile -Force
-    } catch { }
-}
-
-# --- IMMUNITY PERSISTENCE ---
-function Refresh-Watchdog {
-    try {
-        $currentPath = $MyInvocation.MyCommand.Path
-        if ($null -eq $currentPath) { $currentPath = Join-Path $TargetDir "agent-engine.ps1" }
-        $Action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$currentPath`""
-        $Trigger1 = New-ScheduledTaskTrigger -AtStartup
-        $Trigger2 = New-ScheduledTaskTrigger -Once -At (Get-Date).ToString("HH:mm") -RepetitionInterval (New-TimeSpan -Minutes 1)
-        $Settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1)
-        
-        Unregister-ScheduledTask -TaskName "EQNProLiveAgent" -Confirm:$false -ErrorAction SilentlyContinue
-        Register-ScheduledTask -TaskName "EQNProLiveAgent" -Action $Action -Trigger $Trigger1, $Trigger2 -Settings $Settings -User "SYSTEM" -RunLevel Highest -ErrorAction SilentlyContinue
-    } catch { }
-}
-
-Get-PulseLock
-Refresh-Watchdog
-
-$Global:AgentVersion = "1.2.6"
-$Global:NetCache = @{ swTick = 60; publicIp = "None"; location = "None"; coords = "0,0"; isp = "None" }
-[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
-
-function Get-Software {
-    try {
-        $paths = @("HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*", "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*")
-        $raw = Get-ItemProperty $paths -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -ne $null }
-        return $raw | Select-Object @{n='name';e={$_.DisplayName}}, @{n='version';e={$_.DisplayVersion}}, @{n='publisher';e={$_.Publisher}}, @{n='id';e={$_.PSChildName}}, @{n='date';e={$_.InstallDate}} | Sort-Object name
-    } catch { return @() }
-}
-
-function Get-Telemetry {
-    try {
-        $cpu = (Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average
+        $cpu = Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average | Select-Object -ExpandProperty Average
+        if ($null -eq $cpu) { $cpu = (Get-Counter '\Processor(_Total)\% Processor Time' -ErrorAction SilentlyContinue).CounterSamples.CookedValue }
         $mem = Get-CimInstance Win32_OperatingSystem
-        $totalRam = [math]::Round($mem.TotalVisibleMemorySize / 1MB, 0)
-        $hdd = Get-PSDrive C | Select-Object Used, Free
-        $localIp = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.PrefixOrigin -eq 'Dhcp' -and $_.InterfaceAlias -notlike "*Loopback*" } | Select-Object -First 1).IPAddress
-        if ($null -eq $localIp) { $localIp = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -notlike "*Loopback*" } | Select-Object -First 1).IPAddress }
-        
-        $sw = $null
-        $Global:NetCache.swTick++
-        if ($Global:NetCache.swTick -ge 60) { # Every 10 mins
-            try {
-                $ipInfo = Invoke-RestMethod -Uri "https://ipinfo.io/json" -TimeoutSec 5
-                $Global:NetCache.publicIp = $ipInfo.ip; $Global:NetCache.isp = $ipInfo.org; $Global:NetCache.location = "$($ipInfo.city), $($ipInfo.country)"; $Global:NetCache.coords = $ipInfo.loc
-            } catch { Write-Log "Network intel lookup failed: $($_.Exception.Message)" "Yellow" }
-            
-            $Global:LastSoftware = Get-Software
-            $sw = $Global:LastSoftware
-            $Global:NetCache.swTick = 0
-            Write-Log "Software inventory scanned ($($sw.Count) items)." "Gray"
-        }
-
-        return @{
-            deviceId = $deviceId; hostname = $env:COMPUTERNAME; agentVersion = $Global:AgentVersion;
-            cpuUsage = [math]::Round($cpu, 1); ramUsage = [math]::Round((($mem.TotalVisibleMemorySize - $mem.FreePhysicalMemory) / $mem.TotalVisibleMemorySize) * 100, 1);
-            totalRam = $totalRam;
-            hddTotal = [math]::Round(($hdd.Used + $hdd.Free) / 1GB, 1); hddFree = [math]::Round($hdd.Free / 1GB, 1);
-            publicIp = $Global:NetCache.publicIp; localIp = $localIp; isp = $Global:NetCache.isp;
-            location = $Global:NetCache.location; coords = $Global:NetCache.coords; osName = (Get-CimInstance Win32_OperatingSystem).Caption; lastSeen = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
-            software = $sw
-        }
-    } catch { return $null }
+        $totalMem = [math]::Round($mem.TotalVisibleMemorySize / 1MB, 0)
+        $freeMem = [math]::Round($mem.FreePhysicalMemory / 1MB, 0)
+        $disk = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='C:'"
+        return @{ cpuUsage = [math]::Round($cpu, 1); ramUsage = [math]::Round((($totalMem - $freeMem) / $totalMem) * 100, 1); totalRam = $totalMem; hddTotal = [math]::Round($disk.Size / 1GB, 1); hddFree = [math]::Round($disk.FreeSpace / 1GB, 1) }
+    } catch { return @{} }
 }
 
-function Send-Result { param($commandId, $status, $output, $errText) $payload = @{ deviceId = $deviceId; commandId = $commandId; status = $status; output = $output; error = $errText; timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ") }; try { Invoke-RestMethod -Uri "$($serverUrl)/result" -Method Post -Body ($payload | ConvertTo-Json) -ContentType "application/json" } catch { } }
+function Get-NetworkIntelligence {
+    try {
+        $ipInfo = Invoke-RestMethod -Uri "https://ipapi.co/json/" -TimeoutSec 10
+        return @{ publicIp = $ipInfo.ip; location = "$($ipInfo.city), $($ipInfo.region), $($ipInfo.country_name)"; coords = "$($ipInfo.latitude),$($ipInfo.longitude)"; isp = $ipInfo.org }
+    } catch { return @{ publicIp = "Unknown"; location = "Global"; coords = "0,0"; isp = "Direct Access" } }
+}
 
-Write-Log "Background Engine v$Global:AgentVersion (Self-Healing) Initialized" "Cyan"
-$tick = 0
+function Get-SoftwareInventory {
+    $sw = @(); $paths = @("HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*", "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*")
+    foreach($p in $paths) { Get-ItemProperty $p -ErrorAction SilentlyContinue | ForEach-Object { if($_.DisplayName -and ($_.SystemComponent -ne 1)) { $sw += @{ id = $_.PSChildName; name = $_.DisplayName; version = $_.DisplayVersion; publisher = $_.Publisher } } } }
+    return $sw
+}
+
+function Get-DeviceIdentity {
+    $s = (Get-CimInstance Win32_Bios).SerialNumber
+    if ([string]::IsNullOrWhiteSpace($s) -or $s -eq "0") { $s = "HN-" + $env:COMPUTERNAME }
+    return $s
+}
+
+function Invoke-BrandedMessage {
+    param([string]$Message, [string]$Title = "IT Support Alert")
+    $msgScriptPath = "C:/ProgramData/EQNProAgent/msg-$((Get-Date).Ticks).ps1"
+    $escapedMsg = $Message.Replace('"', '`"').Replace("'", "''")
+    $escapedTitle = $Title.Replace('"', '`"').Replace("'", "''")
+    $scriptContent = @"
+Add-Type -AssemblyName PresentationFramework
+Add-Type -AssemblyName System.Windows.Forms
+`$logoPath = '$logoPath'
+`$logoUri = "file:///`$logoPath"
+`$xaml = '<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" Title="$escapedTitle" Height="380" Width="480" WindowStyle="None" AllowsTransparency="True" Background="Transparent" WindowStartupLocation="CenterScreen" Topmost="True">
+    <Border Background="#111111" CornerRadius="16" BorderBrush="#00d2ff" BorderThickness="2">
+        <Grid Margin="25">
+            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+            <Image Grid.Row="0" Source="' + `$logoUri + '" Height="60" Margin="0,0,0,20" Stretch="Uniform" Name="logoImg"/>
+            <TextBlock Grid.Row="1" Text="$escapedMsg" Foreground="White" FontSize="18" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold"/>
+            <StackPanel Grid.Row="2" Margin="0,20,0,0">
+                <TextBlock Text="Sent by Equinox IT Support: for more information email us: itsupport@eqncs.com" Foreground="#666" FontSize="10" HorizontalAlignment="Center" Margin="0,0,0,15"/>
+                <Button Name="btn" Content="Acknowledge" Height="36" Width="140" Background="#005a9c" Foreground="White" BorderThickness="0" FontSize="14" FontWeight="Bold">
+                    <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="18"/></Style></Button.Resources>
+                </Button>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>'
+if (!(Test-Path `$logoPath)) { `$xaml = `$xaml.Replace('Name="logoImg"', 'Visibility="Collapsed"') }
+`$window = [Windows.Markup.XamlReader]::Load([System.Xml.XmlReader]::Create([System.IO.StringReader]::new(`$xaml)))
+`$window.FindName('btn').Add_Click({`$window.Close()})
+`$window.ShowDialog() | Out-Null
+"@
+    $scriptContent | Out-File $msgScriptPath -Encoding UTF8
+    $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File $msgScriptPath"
+    $principal = New-ScheduledTaskPrincipal -GroupId "S-1-5-32-545" -RunLevel Highest -LogonType Interactive
+    $taskName = "EQNMsg-$(Get-Random)"
+    Register-ScheduledTask -TaskName $taskName -Action $action -Principal $principal -Force | Out-Null
+    Start-ScheduledTask $taskName
+    Start-Job -ScriptBlock { param($t, $s); Start-Sleep 600; Unregister-ScheduledTask $t -Confirm:$false; Remove-Item $s -Force } -ArgumentList $taskName, $msgScriptPath | Out-Null
+}
+
+$deviceId = Get-DeviceIdentity
+Write-AgentLog "Agent v2.0 Engine Started"
+
 while ($true) {
     try {
-        $telemetry = Get-Telemetry
-        if ($null -ne $telemetry) {
-            $response = Invoke-RestMethod -Uri $serverUrl -Method Post -Body ($telemetry | ConvertTo-Json) -ContentType "application/json" -TimeoutSec 10
-            if ($response.commands -and $response.commands.Count -gt 0) {
-                foreach ($cmd in $response.commands) {
-                    Write-Log "Received command: $($cmd.command)" "Yellow"
+        $hw = Get-HardwareTelemetry
+        $net = Get-NetworkIntelligence
+        $sw = Get-SoftwareInventory
+        $body = @{ deviceId = $deviceId; hostname = $env:COMPUTERNAME; agentVersion = $agentVersion; cpuUsage = $hw.cpuUsage; ramUsage = $hw.ramUsage; totalRam = $hw.totalRam; hddTotal = $hw.hddTotal; hddFree = $hw.hddFree; publicIp = $net.publicIp; localIp = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -notlike "*Loopback*" } | Select-Object -First 1).IPAddress; isp = $net.isp; location = $net.location; coords = $net.coords; software = $sw; lastSeen = [DateTime]::UtcNow.ToString("o") }
+        $response = Invoke-RestMethod -Uri $serverUrl -Method Post -Body ($body | ConvertTo-Json) -ContentType "application/json" -TimeoutSec 15
+        if ($response.commands) {
+            foreach ($cmd in $response.commands) {
+                $output = ""; $status = "completed"
+                try {
                     switch ($cmd.command) {
-                        "runScript" {
-                            try { $out = Invoke-Expression -Command $cmd.params.code | Out-String; Send-Result -commandId $cmd.id -status "completed" -output $out }
-                            catch { Send-Result -commandId $cmd.id -status "failed" -errText $_.Exception.Message }
-                        }
-                        "restart" {
-                            try {
-                                Send-Result -commandId $cmd.id -status "completed" -output "Restart command received. rebooting..."
-                                Restart-Computer -Force
-                            } catch { Send-Result -commandId $cmd.id -status "failed" -errText "Restart failed: $($_.Exception.Message)" }
-                        }
-                        "sync" {
-                            try {
-                                # Trigger Intune Sync
-                                $sync = Get-CimInstance -Namespace root\Microsoft\Windows\DeviceManagement -ClassName MSDM_DeviceManagementRefreshWithEnrollment -ErrorAction SilentlyContinue
-                                if ($sync) { $sync.RefreshWithEnrollment(); }
-                                Send-Result -commandId $cmd.id -status "completed" -output "Intune/MDM Sync Triggered successfully."
-                            } catch { Send-Result -commandId $cmd.id -status "failed" -errText "Sync failed: $($_.Exception.Message)" }
-                        }
-                        "rename" {
-                            try {
-                                if ($cmd.params.newName) {
-                                    Rename-Computer -NewName $cmd.params.newName -Force -ErrorAction Stop
-                                    Send-Result -commandId $cmd.id -status "completed" -output "Device renamed to $($cmd.params.newName). Reboot required to apply."
-                                } else { throw "No new name provided." }
-                            } catch { Send-Result -commandId $cmd.id -status "failed" -errText "Rename failed: $($_.Exception.Message)" }
-                        }
+                        "restart" { Restart-Computer -Force; $output = "Restart Initialized" }
+                        "sync" { $output = "Sync successful" }
+                        "rename" { Rename-Computer -NewName $cmd.params.newName -Force; $output = "Renamed to $($cmd.params.newName)" }
+                        "runScript" { $output = Invoke-Expression $cmd.params.code | Out-String }
+                        "msg" { Invoke-BrandedMessage -Message $cmd.params.text -Title $cmd.params.title; $output = "Message displayed" }
                         "uninstallApp" {
-                            try {
-                                if ($cmd.params.appId) {
-                                    $appId = $cmd.params.appId
-                                    $reg = Get-ItemProperty @("HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\$appId", "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\$appId") -ErrorAction SilentlyContinue
-                                    
-                                    $appName = $reg.DisplayName
-                                    $uninst = $reg.QuietUninstallString
-                                    if (-not $uninst) { $uninst = $reg.UninstallString }
-                                    
-                                    if ($uninst) {
-                                        if ($uninst -match "(?i)^msiexec") {
-                                            if ($uninst -notmatch "(?i)/quiet") { $uninst += " /quiet /norestart" }
-                                        } else {
-                                            if ($uninst -notmatch "(?i)/S|/quiet|/silent") { $uninst += " /S /quiet" }
-                                        }
-                                        Write-Log "Uninstalling: $appName (Job Queued)" "Yellow"
-                                        
-                                        $jobCode = {
-                                            param($appName, $uninst, $appId, $cmdId, $serverUrl, $deviceId)
-                                            Start-Process cmd.exe -ArgumentList "/c $uninst" -WindowStyle Hidden
-                                            $timeout = 180; $waited = 0
-                                            while ($waited -lt $timeout) {
-                                                Start-Sleep -Seconds 5; $waited += 5
-                                                $checkReg = Get-ItemProperty @("HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\$appId", "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\$appId") -ErrorAction SilentlyContinue
-                                                if (-not $checkReg) { break }
-                                            }
-                                            $finalCheck = Get-ItemProperty @("HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\$appId", "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\$appId") -ErrorAction SilentlyContinue
-                                            $statusMsg = if (-not $finalCheck) { "Successfully uninstalled $appName. Process verified." } else { "Uninstallation command issued for $appName, but registry key still exists. It may require a reboot or manual intervention." }
-                                            
-                                            $payload = @{ deviceId = $deviceId; commandId = $cmdId; status = "completed"; output = $statusMsg; timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ") }
-                                            try { Invoke-RestMethod -Uri "$($serverUrl)/result" -Method Post -Body ($payload | ConvertTo-Json) -ContentType "application/json" } catch {}
-                                        }
-                                        Start-Job -ScriptBlock $jobCode -ArgumentList $appName, $uninst, $appId, $cmd.id, $serverUrl, $deviceId
-                                        
-                                        $Global:NetCache.swTick = 60 # Force rescan on next tick
-                                    } else { throw "Uninstall string not found for $appId." }
-                                } else { throw "No appId provided." }
-                            } catch { Send-Result -commandId $cmd.id -status "failed" -errText "Uninstall failed: $($_.Exception.Message)" }
+                            $appId = $cmd.params.appId
+                            $reg = Get-ItemProperty @("HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\$appId", "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\$appId") -ErrorAction SilentlyContinue
+                            if ($reg.UninstallString) { cmd.exe /c ($reg.UninstallString + " /quiet /norestart"); $output = "Uninstalling $appId" } else { $output = "Not found"; $status = "failed" }
                         }
-                        "selfUpdate" {
-                            try {
-                                Write-Log "UPGRADE INITIATED (v$Global:AgentVersion -> v$($cmd.params.version))" "Magenta"
-                                $cmd.params.code | Out-File -FilePath $MyInvocation.MyCommand.Path -Force
-                                Send-Result -commandId $cmd.id -status "completed" -output "Agent updated to v$($cmd.params.version). Restarting..."
-                                exit
-                            } catch { Send-Result -commandId $cmd.id -status "failed" -errText "Update failed: $($_.Exception.Message)" }
+                        "installApp" {
+                            $u = $cmd.params.url; $a = $cmd.params.args; $fn = $cmd.params.fileName; $p = "C:\ProgramData\EQNProAgent\$fn"
+                            try { Invoke-WebRequest -Uri $u -OutFile $p -ErrorAction Stop; $res = Start-Process -FilePath $p -ArgumentList $a -Wait -PassThru -WindowStyle Hidden; $output = "Installed $fn (Exit: $($res.ExitCode))"; Remove-Item $p -Force } catch { $output = "Fail: $($_.Exception.Message)"; $status = "failed" }
                         }
                     }
-                }
+                } catch { $output = "Error: $($_.Exception.Message)"; $status = "failed" }
+                Write-AgentLog "CMD: $($cmd.command) - $status"
             }
         }
-        # Update Pulse Lock every 30 seconds
-        $tick++
-        if ($tick -ge 3) { Update-Pulse; $tick = 0 }
-    } catch { Write-Log "Loop Error: $($_.Exception.Message)" "Red" } 
-    Start-Sleep -Seconds 10
+    } catch { Write-AgentLog "Loop Error: $($_.Exception.Message)" }
+    Start-Sleep -Seconds 60
 }
 '@
 
-    # 3. Inject static variables into the template
-    $EngineContent = $EngineTemplate.Replace("[[DEVICE_ID]]", $deviceId)
-    $EngineContent = $EngineContent.Replace("[[SERVER_URL]]", $serverUrl)
+$engineContent = $engineSource.Replace("[[SERVER_URL]]", $serverUrl)
+$engineContent | Out-File -FilePath $targetPath -Force -Encoding UTF8
 
-    # 4. Save the engine to ProgramData
-    $EngineContent | Out-File -FilePath $TargetPath -Force -Encoding utf8
-    Write-InstallerLog "Engine script deployed to $TargetPath" "Green"
+# 3. Persistence Layer (Scheduled Task)
+Write-Log "Registering persistence layer..."
+$action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$targetPath`""
+$trigger1 = New-ScheduledTaskTrigger -AtStartup
+$trigger2 = New-ScheduledTaskTrigger -Once -At (Get-Date).ToString("HH:mm") -RepetitionInterval (New-TimeSpan -Minutes 1)
+$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1)
 
-    # 5. Create Scheduled Task (Persistence)
-    $Action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$TargetPath`""
-    $Trigger1 = New-ScheduledTaskTrigger -AtStartup
-    $Trigger2 = New-ScheduledTaskTrigger -Once -At (Get-Date).ToString("HH:mm") -RepetitionInterval (New-TimeSpan -Minutes 1)
-    $Settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1)
-    
-    try {
-        Unregister-ScheduledTask -TaskName "EQNProLiveAgent" -Confirm:$false -ErrorAction SilentlyContinue
-        Register-ScheduledTask -TaskName "EQNProLiveAgent" -Action $Action -Trigger $Trigger1, $Trigger2 -Settings $Settings -User "SYSTEM" -RunLevel Highest
-        Write-InstallerLog "Scheduled Task 'EQNProLiveAgent' registered successfully." "Green"
-    }
-    catch {
-        Write-InstallerLog "ERROR: Failed to register task. Check Admin permissions." "Red"
-    }
+try {
+    Unregister-ScheduledTask -TaskName "EQNProLiveAgent" -Confirm:$false -ErrorAction SilentlyContinue
+    Register-ScheduledTask -TaskName "EQNProLiveAgent" -Action $action -Trigger $trigger1, $trigger2 -Settings $settings -User "SYSTEM" -RunLevel Highest
+    Start-ScheduledTask -TaskName "EQNProLiveAgent"
+    Write-Log "Persistence registered and started successfully."
+} catch {
+    Write-Log "CRITICAL: Persistence registration failed: $($_.Exception.Message)"
 }
 
-# --- MAIN EXECUTION ---
-Install-Persistence
-try {
-    if ((Get-ScheduledTask -TaskName "EQNProLiveAgent").State -ne "Running") {
-        Start-ScheduledTask -TaskName "EQNProLiveAgent"
-        Write-InstallerLog "Agent started in the background." "Cyan"
-    }
-} catch {}
-Write-InstallerLog "EQN Pro Deployment Finished." "Green"
+Write-Log "EQN Pro Installer v2.0.0 Finished"

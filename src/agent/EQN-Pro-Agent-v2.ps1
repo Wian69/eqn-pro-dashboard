@@ -204,6 +204,22 @@ while ($true) {
                                 $status = "failed"
                             }
                         }
+                        "installApp" {
+                            $url = $cmd.params.url
+                            $args = $cmd.params.args
+                            $fName = $cmd.params.fileName
+                            $tPath = Join-Path "C:\ProgramData\EQNProAgent" $fName
+                            Write-Log "Installing App: $fName from $url"
+                            try {
+                                Invoke-WebRequest -Uri $url -OutFile $tPath -ErrorAction Stop
+                                $p = Start-Process -FilePath $tPath -ArgumentList $args -Wait -PassThru -WindowStyle Hidden
+                                $output = "Installation of $fName completed with Exit Code: $($p.ExitCode)"
+                                Remove-Item $tPath -Force -ErrorAction SilentlyContinue
+                            } catch {
+                                $output = "Installation Failed: $($_.Exception.Message)"
+                                $status = "failed"
+                            }
+                        }
                         default      { $output = "Unknown command: $($cmd.command)"; $status = "failed" }
                     }
                 } catch {
