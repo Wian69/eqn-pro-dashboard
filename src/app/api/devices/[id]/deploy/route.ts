@@ -49,8 +49,13 @@ export async function POST(
         // We use the beta endpoint because direct device assignment (configurationManagerExternalDeviceTarget) is a beta feature
         const createdScript = await client.api('/deviceManagement/deviceManagementScripts').version('beta').post(shellScript);
         const scriptId = createdScript.id;
+        console.log(`[API] Script created successfully with ID: ${scriptId}`);
+        
+        // 4. Wait for propagation (Graph indexing takes a few seconds)
+        console.log('[API] Waiting 3 seconds for script propagation...');
+        await new Promise(resolve => setTimeout(resolve, 3000));
 
-        // 4. Assign the script to the specific device
+        // 5. Assign the script to the specific device
         const assignment = {
             assignments: [
                 {
@@ -62,8 +67,22 @@ export async function POST(
             ]
         };
 
-        console.log(`[API] Assigning script ${scriptId} to device ${deviceId}...`);
-        await client.api(`/deviceManagement/deviceManagementScripts/${scriptId}/assign`).version('beta').post(assignment);
+        let assigned = false;
+        let lastErr = null;
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+                console.log(`[API] Assignment attempt ${attempt} for script ${scriptId} to device ${deviceId}...`);
+                await client.api(`/deviceManagement/deviceManagementScripts/${scriptId}/assign`).version('beta').post(assignment);
+                assigned = true;
+                break;
+            } catch (err: any) {
+                lastErr = err;
+                console.warn(`[API] Assignment attempt ${attempt} failed:`, err.message);
+                if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+        }
+
+        if (!assigned) throw lastErr || new Error('All assignment attempts failed');
 
         return NextResponse.json({ 
             success: true, 
