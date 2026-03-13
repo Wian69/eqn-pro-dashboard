@@ -38,7 +38,18 @@ export async function GET() {
 
         // Map the agents to the format the UI expects
         const agentsMap: any = {};
+        const now = new Date();
+        const timeoutMs = 30 * 60 * 1000; // 30 minutes
+
         agentsData?.forEach(agent => {
+            let status = agent.status;
+            const lastSeenDate = new Date(agent.last_seen);
+            
+            // Auto-Offline logic: if not seen for 30 mins, mark offline
+            if (now.getTime() - lastSeenDate.getTime() > timeoutMs) {
+                status = 'offline';
+            }
+
             agentsMap[agent.device_id] = {
                 deviceId: agent.device_id,
                 hostname: agent.hostname,
@@ -54,7 +65,7 @@ export async function GET() {
                 location: agent.location,
                 coords: agent.coords,
                 lastSeen: agent.last_seen,
-                status: agent.status,
+                status: status,
                 software: agent.software || [],
                 commands: commandsByDevice[agent.device_id] || []
             };

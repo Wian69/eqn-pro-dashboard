@@ -96,6 +96,23 @@ export default function Devices() {
         }
     };
 
+    const resetAgent = async (deviceId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!confirm('Are you sure you want to reset this agent? This will purge its history and status, allowing for a fresh deployment.')) return;
+        
+        try {
+            const res = await fetch(`/api/agent/${deviceId}`, { method: 'DELETE' });
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.details || 'Reset failed');
+            }
+            // Refresh data
+            window.location.reload();
+        } catch (err: any) {
+            alert(err.message);
+        }
+    };
+
     const getSortIcon = (key: string) => {
         if (sortConfig?.key !== key) return '↕️';
         return sortConfig.direction === 'asc' ? '🔼' : '🔽';
@@ -193,9 +210,33 @@ export default function Devices() {
                                     </td>
                                     <td style={{ padding: '16px', textAlign: 'right' }}>
                                         {isAgent ? (
-                                            <span style={{ color: '#22c55e', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                                                ✅ ACTIVE AGENT
-                                            </span>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px' }}>
+                                                {isAgent.status === 'online' ? (
+                                                    <span style={{ color: '#22c55e', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                                        ✅ ACTIVE AGENT
+                                                    </span>
+                                                ) : (
+                                                    <>
+                                                        <span style={{ color: '#ef4444', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                                            ❌ OFFLINE
+                                                        </span>
+                                                        <button
+                                                            onClick={(e) => resetAgent(isAgent.deviceId, e)}
+                                                            className="btn-secondary"
+                                                            style={{
+                                                                padding: '4px 8px',
+                                                                borderRadius: '4px',
+                                                                fontSize: '0.7rem',
+                                                                background: 'rgba(239, 68, 68, 0.1)',
+                                                                border: '1px solid #ef4444',
+                                                                color: '#ef4444'
+                                                            }}
+                                                        >
+                                                            Reset
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
                                         ) : (
                                             <button
                                                 onClick={(e) => deployAgent(dev.id, e)}
