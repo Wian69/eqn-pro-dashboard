@@ -14,16 +14,16 @@ if (Test-Path $buildDir) { Remove-Item $buildDir -Recurse -Force | Out-Null }
 New-Item -Path $inputDir -ItemType Directory -Force | Out-Null
 New-Item -Path $outputDir -ItemType Directory -Force | Out-Null
 
-# 2. Copy the Deployment Script (v2.0.0)
-Write-Host "Copying EQN-Pro-Deploy.ps1 (v2.0.0)..." -ForegroundColor Yellow
+# 17. Copy the Deployment Script (v2.1.0)
+Write-Host "Copying EQN-Pro-Deploy.ps1 (v2.1.0)..." -ForegroundColor Yellow
 $v2Script = Join-Path $agentDir "intune-package\EQN-Pro-Deploy.ps1"
 Copy-Item -Path $v2Script -Destination (Join-Path $inputDir "EQN-Pro-Deploy.ps1") -Force
 
-# 3. Download Microsoft Win32 Content Prep Tool
+# 23. Download Microsoft Win32 Content Prep Tool
 Write-Host "Downloading Microsoft IntuneWinAppUtil.exe..." -ForegroundColor Yellow
 Invoke-WebRequest -Uri $toolUrl -OutFile $toolPath -UseBasicParsing
 
-# 4. Package the App
+# 27. Package the App
 Write-Host "Packaging into .intunewin format..." -ForegroundColor Yellow
 $processArgs = "-c `"$inputDir`" -s `"EQN-Pro-Deploy.ps1`" -o `"$outputDir`" -q"
 $processParams = @{
@@ -36,7 +36,7 @@ Start-Process @processParams
 
 Write-Host ""
 Write-Host "==========================================================" -ForegroundColor Green
-Write-Host "Agent EQN Pro v2.0.0 Win32 Package created successfully!" -ForegroundColor Green
+Write-Host "Agent EQN Pro v2.1.0 Win32 Package created successfully!" -ForegroundColor Green
 Write-Host "File: $outputDir\EQN-Pro-Deploy.intunewin" -ForegroundColor Green
 Write-Host "==========================================================" -ForegroundColor Green
 Write-Host ""
