@@ -43,7 +43,7 @@ export async function POST(
             runAsAccount: 'system'
         };
 
-        await client.api(`/deviceManagement/managedDevices/${deviceId}/microsoft.graph.executeCloudScript`)
+        await client.api(`/deviceManagement/managedDevices/${deviceId}/microsoft.graph.runCloudScript`)
             .version('beta')
             .post(payload);
         
