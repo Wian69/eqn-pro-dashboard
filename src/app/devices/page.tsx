@@ -6,7 +6,9 @@ import { useRouter } from 'next/navigation';
 export default function Devices() {
     const [devices, setDevices] = useState<any[]>([]);
     const [filteredDevices, setFilteredDevices] = useState<any[]>([]);
+    const [agents, setAgents] = useState<any>({});
     const [loading, setLoading] = useState(true);
+    const [deploying, setDeploying] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
@@ -14,27 +16,32 @@ export default function Devices() {
     const router = useRouter();
 
     useEffect(() => {
-        setError(null);
-        fetch('/api/devices')
-            .then(async res => {
-                if (!res.ok) {
-                    const errorData = await res.json().catch(() => ({}));
-                    throw new Error(errorData.details || errorData.error || `API Error: ${res.status}`);
-                }
-                return res.json();
-            })
-            .then(data => {
-                setDevices(data.devices || []);
-                setFilteredDevices(data.devices || []);
-            })
-            .catch(err => {
-                console.error('Failed to fetch devices:', err);
+        const fetchData = async () => {
+            try {
+                setError(null);
+                const [devRes, agentRes] = await Promise.all([
+                    fetch('/api/devices'),
+                    fetch('/api/agent')
+                ]);
+
+                if (!devRes.ok) throw new Error('Failed to fetch Intune devices');
+                if (!agentRes.ok) throw new Error('Failed to fetch EQN agents');
+
+                const devData = await devRes.json();
+                const agentData = await agentRes.json();
+
+                setDevices(devData.devices || []);
+                setAgents(agentData || {});
+                setFilteredDevices(devData.devices || []);
+            } catch (err: any) {
+                console.error('Failed to fetch synchronization data:', err);
                 setError(err.message);
-                setDevices([]);
-            })
-            .finally(() => {
+            } finally {
                 setLoading(false);
-            });
+            }
+        };
+
+        fetchData();
     }, []);
 
     useEffect(() => {
@@ -70,6 +77,23 @@ export default function Devices() {
             direction = 'desc';
         }
         setSortConfig({ key, direction });
+    };
+
+    const deployAgent = async (deviceId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!confirm('This will trigger an automated EQN Pro Agent deployment via Intune. Proceed?')) return;
+        
+        setDeploying(deviceId);
+        try {
+            const res = await fetch(`/api/devices/${deviceId}/deploy`, { method: 'POST' });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.details || data.error || 'Deployment failed');
+            alert('Success! Deployment script has been queued in Intune.');
+        } catch (err: any) {
+            alert(err.message);
+        } finally {
+            setDeploying(null);
+        }
     };
 
     const getSortIcon = (key: string) => {
@@ -124,40 +148,64 @@ export default function Devices() {
                             <th onClick={() => toggleSort('complianceState')} style={{ padding: '12px', cursor: 'pointer', userSelect: 'none' }}>
                                 Compliance {getSortIcon('complianceState')}
                             </th>
+                            <th style={{ padding: '12px' }}>Type</th>
                             <th onClick={() => toggleSort('lastSyncDateTime')} style={{ padding: '12px', cursor: 'pointer', userSelect: 'none' }}>
-                                Last Sync Date {getSortIcon('lastSyncDateTime')}
+                                Last Sync {getSortIcon('lastSyncDateTime')}
                             </th>
-                            <th style={{ padding: '12px' }}>Last Sync Time</th>
+                            <th style={{ padding: '12px', textAlign: 'right' }}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {loading ? (
-                            <tr><td colSpan={5} style={{ padding: '20px', textAlign: 'center' }}>Loading Devices...</td></tr>
+                            <tr><td colSpan={6} style={{ padding: '20px', textAlign: 'center' }}>Loading Unified Inventory...</td></tr>
                         ) : filteredDevices.length === 0 ? (
-                            <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>No devices match your filters.</td></tr>
-                        ) : filteredDevices.map((dev, i) => (
-                            <tr
-                                key={i}
-                                onClick={() => router.push(`/devices/${dev.id}`)}
-                                style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.2s' }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
-                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                            >
-                                <td style={{ padding: '16px', fontWeight: '500' }}>{dev.deviceName}</td>
-                                <td style={{ padding: '16px' }}>{dev.operatingSystem}</td>
-                                <td style={{ padding: '16px' }}>
-                                    <span style={{ color: dev.complianceState === 'compliant' ? '#22c55e' : '#ef4444' }}>
-                                        ● {dev.complianceState}
-                                    </span>
-                                </td>
-                                <td style={{ padding: '16px', color: 'var(--text-muted)' }}>
-                                    {new Date(dev.lastSyncDateTime).toLocaleDateString()}
-                                </td>
-                                <td style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                                    {new Date(dev.lastSyncDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </td>
-                            </tr>
-                        ))}
+                            <tr><td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>No devices match your filters.</td></tr>
+                        ) : filteredDevices.map((dev, i) => {
+                            const isAgent = agents[dev.id];
+                            return (
+                                <tr
+                                    key={i}
+                                    onClick={() => router.push(`/devices/${dev.id}`)}
+                                    style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.2s' }}
+                                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                >
+                                    <td style={{ padding: '16px', fontWeight: '500' }}>{dev.deviceName}</td>
+                                    <td style={{ padding: '16px' }}>{dev.operatingSystem}</td>
+                                    <td style={{ padding: '16px' }}>
+                                        <span style={{ color: dev.complianceState === 'compliant' ? '#22c55e' : '#ef4444' }}>
+                                            ● {dev.complianceState}
+                                        </span>
+                                    </td>
+                                    <td style={{ padding: '16px' }}>
+                                        {isAgent ? (
+                                            <span style={{ color: 'var(--accent)', fontSize: '0.75rem', padding: '4px 8px', borderRadius: '4px', background: 'rgba(var(--accent-rgb), 0.1)', border: '1px solid var(--accent)' }}>
+                                                EQN PRO
+                                            </span>
+                                        ) : (
+                                            <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Managed</span>
+                                        )}
+                                    </td>
+                                    <td style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                                        {new Date(dev.lastSyncDateTime).toLocaleDateString()}
+                                    </td>
+                                    <td style={{ padding: '16px', textAlign: 'right' }}>
+                                        {!isAgent && (
+                                            <button 
+                                                onClick={(e) => deployAgent(dev.id, e)}
+                                                disabled={deploying === dev.id}
+                                                style={{ padding: '6px 12px', borderRadius: '6px', background: 'var(--glass)', border: '1px solid var(--accent)', color: 'var(--accent)', fontSize: '0.75rem', cursor: 'pointer' }}
+                                            >
+                                                {deploying === dev.id ? 'Queuing...' : 'Deploy Agent'}
+                                            </button>
+                                        )}
+                                        {isAgent && (
+                                            <span style={{ color: '#22c55e', fontSize: '0.75rem' }}>Active Agent</span>
+                                        )}
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>

@@ -184,6 +184,22 @@ export default function DeviceDetails() {
         } catch (err) { } finally { setActionLoading(null); }
     };
 
+    const deployAgent = async () => {
+        if (!confirm('This will trigger an automated EQN Pro Agent deployment via Intune. Proceed?')) return;
+        
+        setActionLoading('deploy');
+        try {
+            const res = await fetch(`/api/devices/${id}/deploy`, { method: 'POST' });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.details || data.error || 'Deployment failed');
+            setMessage({ type: 'success', text: 'Success! Deployment script has been queued in Intune.' });
+        } catch (err: any) {
+            setMessage({ type: 'error', text: err.message });
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
     const sendInstantMessage = async () => {
         if (!instantMessage.trim() || !agentData) return;
         setActionLoading('sendMessage');
@@ -302,6 +318,11 @@ Unregister-ScheduledTask 'EQNBroadcast' -Confirm:$false;
                 </div>
 
                 <div className="management-strip">
+                    {!agentData && (
+                        <button className="mgmt-btn accent" disabled={!!actionLoading} onClick={deployAgent}>
+                            <Cloud size={18} className={actionLoading === 'deploy' ? 'animate-spin' : ''} /> {actionLoading === 'deploy' ? 'Queuing...' : 'Deploy Agent'}
+                        </button>
+                    )}
                     <button className="mgmt-btn danger" disabled={!!actionLoading} onClick={() => handleAction('rebootNow')}>
                         <Power size={18} /> {actionLoading === 'rebootNow' ? '' : 'Restart'}
                     </button>
