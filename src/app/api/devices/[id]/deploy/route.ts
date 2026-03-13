@@ -52,13 +52,13 @@ export async function POST(
         console.log(`[API] Script created successfully with ID: ${scriptId}`);
         
         // 4. Wait for propagation (Graph indexing takes a few seconds)
-        console.log('[API] Waiting 5 seconds for script propagation...');
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        console.log('[API] Waiting 10 seconds for script propagation...');
+        await new Promise(resolve => setTimeout(resolve, 10000));
 
         // 5. Assign the script to the specific device
-        // We try both common assignment wrappers and use v1.0
+        // CRITICAL: Scripts use 'deviceManagementScriptAssignments' as the key, NOT 'assignments'
         const assignment = {
-            assignments: [
+            deviceManagementScriptAssignments: [
                 {
                     target: {
                         "@odata.type": "#microsoft.graph.configurationManagerExternalDeviceTarget",
@@ -74,16 +74,15 @@ export async function POST(
         for (let attempt = 1; attempt <= 3; attempt++) {
             try {
                 console.log(`[API] Assignment attempt ${attempt} for script ${scriptId} to device ${deviceId}...`);
-                // Try v1.0 first as it's more stable
-                await client.api(`/deviceManagement/deviceManagementScripts/${scriptId}/assign`).version('v1.0').post(assignment);
+                // We use beta because configurationManagerExternalDeviceTarget is a beta-heavy feature
+                await client.api(`/deviceManagement/deviceManagementScripts/${scriptId}/assign`).version('beta').post(assignment);
                 assigned = true;
                 break;
             } catch (err: any) {
                 lastErrorDetails = err.body ? JSON.stringify(err.body) : err.message;
                 console.warn(`[API] Assignment attempt ${attempt} failed:`, lastErrorDetails);
                 
-                // If it's a 404/Not Found, it's definitely propagation
-                if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 3000));
+                if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 5000));
             }
         }
 
