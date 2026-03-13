@@ -53,7 +53,6 @@ if ([string]::IsNullOrWhiteSpace($deviceId)) {
     $deviceId = $env:COMPUTERNAME 
     Write-InstallerLog "Warning: Serial number not found. Using hostname '$deviceId' as device ID." "Yellow"
 }
-$AgentVersion = "1.3.0"
 
 # --- LOGGING FUNCTION ---
 function Write-InstallerLog {
