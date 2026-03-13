@@ -271,7 +271,7 @@ $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfil
 $principal = New-ScheduledTaskPrincipal -GroupId "S-1-5-32-545" -RunLevel Highest -LogonType Interactive; 
 Register-ScheduledTask -TaskName 'EQNBroadcast' -Action $action -Principal $principal -Force;
 Start-ScheduledTask 'EQNBroadcast';
-Start-Sleep -Seconds 30; # Increased persistence
+Start-Sleep -Seconds 10; 
 Unregister-ScheduledTask 'EQNBroadcast' -Confirm:$false;
 "Broadcast delivered (WTS + VBS + msg.exe + WPF)"`;
 
