@@ -50,6 +50,10 @@ $TargetPath = Join-Path $TargetDir $ScriptName
 $LogFile = Join-Path $TargetDir "agent.log"
 $baseUrl = $serverUrl.Replace("/api/agent", "")
 $deviceId = (Get-CimInstance Win32_BIOS).SerialNumber
+if ([string]::IsNullOrWhiteSpace($deviceId)) { 
+    $deviceId = $env:COMPUTERNAME 
+    Write-InstallerLog "Warning: Serial number not found. Using hostname '$deviceId' as device ID." "Yellow"
+}
 $AgentVersion = "1.3.0"
 
 # --- LOGGING FUNCTION ---
