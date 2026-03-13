@@ -227,11 +227,17 @@ try {
     }
     if ($sessions.Count -eq 0) { $sessions = 1..2 } # Fallback to common IDs
     
+    $log = 'C:/ProgramData/EQNProAgent/agent.log'
+    "$(Get-Date -Format 'yyyy-MM-dd HH:mm') [Broadcast] Targeting sessions: $($sessions -join ',')" | Out-File $log -Append
+    
     $title = "IT Support Alert"
     $sessions | ForEach-Object { 
         [WTS]::WTSSendMessage([IntPtr]::Zero, [int]$_, $title, ($title.Length * 2), "${escapedMsg}", (${escapedMsg}.Length * 2), 0x40, 0, [ref]$resp, $false) 
     }
-} catch {}
+} catch { 
+    $log = 'C:/ProgramData/EQNProAgent/agent.log'
+    "$(Get-Date -Format 'yyyy-MM-dd HH:mm') [Broadcast] Error: $_" | Out-File $log -Append 
+}
 
 # 2. Fallback: msg.exe and VBS
 try { msg * /TIME:300 "${escapedMsg}" } catch {}
