@@ -10,7 +10,7 @@ $TranscriptPath = Join-Path $PSScriptRoot "deploy_transcript.log"
 try { Start-Transcript -Path $TranscriptPath -Append -ErrorAction SilentlyContinue } catch {}
 
 # Function to handle errors gracefully
-function Handle-FatalError {
+function Invoke-FatalError {
     param($message)
     $errorMessage = "FATAL ERROR: $message"
     Write-InstallerLog $errorMessage "Red"
@@ -46,7 +46,6 @@ $serverUrl = "https://eqn-pro-dashboard.vercel.app/api/agent"
 
 $TargetDir = "C:\ProgramData\EQNProAgent"
 $ScriptName = "agent-engine.ps1"
-$TargetPath = Join-Path $TargetDir $ScriptName
 $LogFile = Join-Path $TargetDir "agent.log"
 $baseUrl = $serverUrl.Replace("/api/agent", "")
 $deviceId = (Get-CimInstance Win32_BIOS).SerialNumber
@@ -71,7 +70,7 @@ function Write-InstallerLog {
 
 # --- INSTALLATION LOGIC ---
 function Install-Persistence {
-    Write-InstallerLog "Installing EQN Pro Persistence Layer v1.2.4..." "Cyan"
+    Write-InstallerLog "Installing EQN Pro Persistence Layer v1.3.0..." "Cyan"
     
     # 0. Aggressive Cleanup: Terminate ALL duplicate agent processes
     Write-InstallerLog "Cleaning up existing agent instances..." "Yellow"
@@ -192,6 +191,7 @@ while ($true) {
     $EngineContent = $EngineContent.Replace("[[SERVER_URL]]", $serverUrl)
 
     # 4. Save the engine to ProgramData
+    $TargetPath = Join-Path $TargetDir $ScriptName
     $EngineContent | Out-File -FilePath $TargetPath -Force -Encoding utf8
     Write-InstallerLog "Engine script deployed to $TargetPath" "Green"
 
