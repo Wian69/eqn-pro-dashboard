@@ -146,6 +146,29 @@ if (!(Test-Path `$logoPath)) { `$xaml = `$xaml.Replace('Name="logoImg"', 'Visibi
     Start-Job -ScriptBlock { param($t, $s); Start-Sleep 600; Unregister-ScheduledTask $t -Confirm:$false; Remove-Item $s -Force } -ArgumentList $taskName, $msgScriptPath | Out-Null
 }
 
+# --- Result Reporting ---
+function Send-Result {
+    param(
+        [string]$commandId,
+        [string]$status,
+        [string]$output,
+        [string]$errorText
+    )
+    $payload = @{
+        deviceId  = $deviceId
+        commandId = $commandId
+        status    = $status
+        output    = $output
+        error     = $errorText
+        timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
+    }
+    try {
+        Invoke-RestMethod -Uri "$serverUrl/result" -Method Post -Body ($payload | ConvertTo-Json) -ContentType "application/json" -TimeoutSec 10 | Out-Null
+    } catch {
+        Write-Log "Result Send Failed: $($_.Exception.Message)"
+    }
+}
+
 # --- Core Loop ---
 Write-Log "Agent v2.0 Started Up"
 $deviceId = Get-DeviceIdentity
@@ -178,9 +201,11 @@ while ($true) {
         
         if ($response.commands) {
             foreach ($cmd in $response.commands) {
-                Write-Log "Executing: $($cmd.command)"
+                $cmdId = $cmd.id
+                Write-Log "Executing: $($cmd.command) (ID: $cmdId)"
                 $output = ""
                 $status = "completed"
+                $err = ""
                 
                 try {
                     switch ($cmd.command) {
@@ -202,6 +227,7 @@ while ($true) {
                             } else {
                                 $output = "Error: App $appId not found or no UninstallString available"
                                 $status = "failed"
+                                $err = $output
                             }
                         }
                         "installApp" {
@@ -218,6 +244,7 @@ while ($true) {
                             } catch {
                                 $output = "Installation Failed: $($_.Exception.Message)"
                                 $status = "failed"
+                                $err = $output
                             }
                         }
                         "selfUpdate" {
@@ -230,20 +257,25 @@ while ($true) {
                                 if ($newC.Length -gt 100) {
                                     $newC | Out-File -FilePath $enginePath -Force -Encoding UTF8
                                     $output = "Agent engine successfully updated to latest version. Restarting..."
-                                    Start-Job -ScriptBlock { Start-Sleep 5; Restart-Computer -Force } | Out-Null # Optional: Force restart to apply logic immediately
+                                    Send-Result -commandId $cmdId -status "completed" -output $output -errorText ""
+                                    Start-Job -ScriptBlock { Start-Sleep 5; Restart-Computer -Force } | Out-Null
+                                    continue # Skip redundant Send-Result below as we just sent it
                                 } else { throw "Downloaded engine too small." }
                             } catch {
                                 $output = "Self-Update Failed: $($_.Exception.Message)"
                                 $status = "failed"
+                                $err = $output
                             }
                         }
-                        default      { $output = "Unknown command: $($cmd.command)"; $status = "failed" }
+                        default      { $output = "Unknown command: $($cmd.command)"; $status = "failed"; $err = $output }
                     }
                 } catch {
-                    $output = "Error: $($_.Exception.Message)"
+                    $output = "Execution Error: $($_.Exception.Message)"
                     $status = "failed"
+                    $err = $output
                 }
 
+                Send-Result -commandId $cmdId -status $status -output $output -errorText $err
                 Write-Log "Result: $status - $output"
             }
         }

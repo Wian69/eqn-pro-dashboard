@@ -1,54 +1,72 @@
-# EQN Pro Agent Diagnostic Tool
-# Run this on a device where the agent is installed but not showing in the dashboard.
-
+# EQN Pro Agent Advanced Diagnostic Tool v2.1
 $TargetDir = "C:\ProgramData\EQNProAgent"
 $EnginePath = Join-Path $TargetDir "agent-engine.ps1"
 $LogPath = Join-Path $TargetDir "agent.log"
+$BootLog = Join-Path $TargetDir "bootstrapper.log"
 
-Write-Host "--- EQN Pro Agent Diagnostics ---" -ForegroundColor Cyan
+Write-Host "`n--- EQN Pro Advanced Diagnostics ---" -ForegroundColor Cyan
 
-# 1. Check Directory
-if (Test-Path $TargetDir) {
-    Write-Host "[OK] Agent directory exists: $TargetDir" -ForegroundColor Green
-} else {
-    Write-Host "[FAIL] Agent directory NOT found: $TargetDir" -ForegroundColor Red
-    exit
-}
-
-# 2. Check Engine Script
-if (Test-Path $EnginePath) {
-    Write-Host "[OK] Engine script found: $EnginePath" -ForegroundColor Green
-    $content = Get-Content $EnginePath
-    $serverUrl = ($content | Select-String "\$serverUrl = `"(.*?)`"").Matches.Groups[1].Value
-    $deviceId = ($content | Select-String "\$deviceId = `"(.*?)`"").Matches.Groups[1].Value
-    
-    Write-Host "  > Server URL: $serverUrl" -ForegroundColor Gray
-    Write-Host "  > Device ID:  $deviceId" -ForegroundColor Gray
-    
-    if ($serverUrl -like "*localhost*") {
-        Write-Host "  [!] WARNING: Agent is targeting 'localhost'. It will NEVER show in the dashboard." -ForegroundColor Yellow
+function Check-File {
+    param($path, $name)
+    if (Test-Path $path) {
+        Write-Host "[OK] $name found: $path" -ForegroundColor Green
+        return $true
     }
-} else {
-    Write-Host "[FAIL] Engine script NOT found." -ForegroundColor Red
+    Write-Host "[FAIL] $name NOT found: $path" -ForegroundColor Red
+    return $false
 }
 
-# 3. Check Scheduled Task
+# 1. Directory & Files
+$dirExists = Check-File $TargetDir "Agent Directory"
+$engineExists = Check-File $EnginePath "Engine Script"
+
+# 2. Extract Data
+if ($engineExists) {
+    $content = Get-Content $EnginePath -Raw
+    if ($content -match '\$serverUrl = "(.*?)"') { 
+        $serverUrl = $matches[1]
+        Write-Host "  > Target URL: $serverUrl" -ForegroundColor Gray
+    }
+    if ($content -match '\$deviceId = "(.*?)"') { 
+        $deviceId = $matches[1]
+        Write-Host "  > Agent ID:   $deviceId" -ForegroundColor Gray
+    }
+}
+
+# 3. Scheduled Task
 $task = Get-ScheduledTask -TaskName "EQNProLiveAgent" -ErrorAction SilentlyContinue
 if ($task) {
     Write-Host "[OK] Scheduled Task 'EQNProLiveAgent' is registered." -ForegroundColor Green
-    Write-Host "  > Current State: $($task.State)" -ForegroundColor Gray
+    Write-Host "  > State: $($task.State)" -ForegroundColor Gray
 } else {
-    Write-Host "[FAIL] Scheduled Task 'EQNProLiveAgent' is NOT registered." -ForegroundColor Red
+    Write-Host "[FAIL] Scheduled Task is MISSING." -ForegroundColor Red
 }
 
-# 4. Test Connectivity
-Write-Host "[...] Testing connectivity to $serverUrl..." -ForegroundColor Yellow
-try {
-    $testResponse = Invoke-RestMethod -Uri $serverUrl -Method Post -Body (@{ deviceId = "diag-test"; status = "diagnostic" } | ConvertTo-Json) -ContentType "application/json" -TimeoutSec 10
-    Write-Host "[OK] Successfully communicated with the dashboard API." -ForegroundColor Green
-} catch {
-    Write-Host "[FAIL] Could NOT reach the dashboard API: $($_.Exception.Message)" -ForegroundColor Red
+# 4. Engine Logs
+if (Test-Path $LogPath) {
+    Write-Host "[LOG] Recent Agent Activity (Last 5 lines):" -ForegroundColor Yellow
+    Get-Content $LogPath -Tail 5 | ForEach-Object { Write-Host "  $ _" -ForegroundColor Gray }
 }
 
-Write-Host "--- Diagnostics Complete ---" -ForegroundColor Cyan
-Write-Host "If the Server URL is wrong, please redeploy using the dashboard button." -ForegroundColor Yellow
+# 5. Connectivity Test
+if ($serverUrl) {
+    Write-Host "[...] Testing connectivity to $serverUrl..." -ForegroundColor Yellow
+    try {
+        $body = @{ deviceId = "diag-test-$env:COMPUTERNAME"; status = "diagnostic" } | ConvertTo-Json
+        $testResponse = Invoke-RestMethod -Uri $serverUrl -Method Post -Body $body -ContentType "application/json" -TimeoutSec 10
+        Write-Host "[OK] Successfully reached Dashboard API." -ForegroundColor Green
+    } catch {
+        Write-Host "[FAIL] Connectivity Error: $($_.Exception.Message)" -ForegroundColor Red
+        if ($_.Exception.Message -like "*proxy*") { Write-Host "  [!] Proxy detected and blocking traffic." -ForegroundColor Yellow }
+    }
+}
+
+# 6. Process Check
+$proc = Get-Process -Name powershell* | Where-Object { $_.CommandLine -like "*agent-engine.ps1*" } -ErrorAction SilentlyContinue
+if ($proc) {
+    Write-Host "[OK] Agent Process is running (PID: $($proc.Id))." -ForegroundColor Green
+} else {
+    Write-Host "[FAIL] Agent Process is NOT running." -ForegroundColor Red
+}
+
+Write-Host "`n--- Diagnostic Complete ---" -ForegroundColor Cyan
