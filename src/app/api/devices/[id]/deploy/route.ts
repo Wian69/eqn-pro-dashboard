@@ -45,13 +45,12 @@ export async function POST(
             roleScopeTagIds: ['0']
         };
 
-        console.log('[API] Creating Intune Shell Script...');
-        const createdScript = await client.api('/deviceManagement/deviceShellScripts').post(shellScript);
+        console.log('[API] Creating Intune PowerShell Script...');
+        // We use the beta endpoint because direct device assignment (configurationManagerExternalDeviceTarget) is a beta feature
+        const createdScript = await client.api('/deviceManagement/deviceManagementScripts').version('beta').post(shellScript);
         const scriptId = createdScript.id;
 
         // 4. Assign the script to the specific device
-        // We use the ID of the managed device to target it
-        // Graph handles assignments via /deviceManagement/deviceShellScripts/{id}/assignments
         const assignment = {
             assignments: [
                 {
@@ -64,7 +63,7 @@ export async function POST(
         };
 
         console.log(`[API] Assigning script ${scriptId} to device ${deviceId}...`);
-        await client.api(`/deviceManagement/deviceShellScripts/${scriptId}/assign`).post(assignment);
+        await client.api(`/deviceManagement/deviceManagementScripts/${scriptId}/assign`).version('beta').post(assignment);
 
         return NextResponse.json({ 
             success: true, 
