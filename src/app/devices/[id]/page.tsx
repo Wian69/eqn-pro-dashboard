@@ -221,8 +221,9 @@ public class WTS {
 try {
     Add-Type -TypeDefinition $WTSDefinition -ErrorAction SilentlyContinue
     $resp = 0
-    # Try common sessions (0 is system, 1-5 are usually users)
-    1..5 | ForEach-Object { [WTS]::WTSSendMessage([IntPtr]::Zero, $_, "IT Support Alert", 16, "${escapedMsg}", ${escapedMsg.length}, 0x40, 0, [ref]$resp, $false) }
+    $title = "IT Support Alert"
+    # Try sessions 1-5 (common interactive sessions)
+    1..5 | ForEach-Object { [WTS]::WTSSendMessage([IntPtr]::Zero, $_, $title, ($title.Length * 2), "${escapedMsg}", (${escapedMsg}.Length * 2), 0x40, 0, [ref]$resp, $false) }
 } catch {}
 
 # 2. Fallback: msg.exe and VBS
