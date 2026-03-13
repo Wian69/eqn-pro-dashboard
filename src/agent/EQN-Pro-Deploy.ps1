@@ -151,15 +151,17 @@ function Send-Result { param($commandId, $status, $output, $errText)
     try { Invoke-RestMethod -Uri "$($serverUrl)/result" -Method Post -Body ($payload | ConvertTo-Json) -ContentType "application/json" } catch { } 
 }
 
-while ($true) {
-    try {
-        # Telemetry simplified for loop reliability
-        $cpu = (Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average
+        # Telemetry: Network & Resources
         $mem = Get-CimInstance Win32_OperatingSystem
+        $cpu = (Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average
+        $hdd = Get-PSDrive C | Select-Object Used, Free
+        $localIp = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.PrefixOrigin -eq 'Dhcp' -and $_.InterfaceAlias -notlike "*Loopback*" } | Select-Object -First 1).IPAddress
+        
         $telemetry = @{
             deviceId = $deviceId; hostname = $env:COMPUTERNAME; agentVersion = $Version;
             cpuUsage = [math]::Round($cpu, 1); ramUsage = [math]::Round((($mem.TotalVisibleMemorySize - $mem.FreePhysicalMemory) / $mem.TotalVisibleMemorySize) * 100, 1);
-            lastSeen = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ"); status = "online"
+            hddTotal = [math]::Round(($hdd.Used + $hdd.Free) / 1GB, 1); hddFree = [math]::Round($hdd.Free / 1GB, 1);
+            localIp = $localIp; osName = $mem.Caption; lastSeen = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ"); status = "online"
         }
         
         $response = Invoke-RestMethod -Uri $serverUrl -Method Post -Body ($telemetry | ConvertTo-Json) -ContentType "application/json" -TimeoutSec 15
