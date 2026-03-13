@@ -2,11 +2,20 @@
 # This script handles both Installation and Execution. 
 # Optimized for Microsoft Intune "Win32 App" or "PowerShell Script" deployment.
 
+$ErrorLogLocal = Join-Path $PSScriptRoot "deploy_error.txt"
+if (Test-Path $ErrorLogLocal) { Remove-Item $ErrorLogLocal -Force -ErrorAction SilentlyContinue }
+
+# Start transcript to capture all output for debugging
+$TranscriptPath = Join-Path $PSScriptRoot "deploy_transcript.log"
+try { Start-Transcript -Path $TranscriptPath -Append -ErrorAction SilentlyContinue } catch {}
+
 # 0. Check for Administrator privileges
 $currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
 $principal = New-Object Security.Principal.WindowsPrincipal($currentIdentity)
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    Write-Error "CRITICAL: This script must be run as Administrator."
+    $err = "CRITICAL: This script must be run as Administrator."
+    $err | Out-File -FilePath $ErrorLogLocal -Force
+    Write-Error $err
     exit 1
 }
 
@@ -301,17 +310,24 @@ while ($true) {
 }
 
 # --- MAIN EXECUTION ---
-Install-Persistence
 try {
+    Install-Persistence
     if ((Get-ScheduledTask -TaskName "EQNProLiveAgent").State -ne "Running") {
         Start-ScheduledTask -TaskName "EQNProLiveAgent"
         Write-InstallerLog "Agent started in the background." "Cyan"
     }
-} catch {}
+} catch {
+    $_.Exception.Message | Out-File -FilePath $ErrorLogLocal -Append
+    Write-InstallerLog "CRITICAL ERROR: $($_.Exception.Message)" "Red"
+}
+
 Write-InstallerLog "EQN Pro Deployment Finished." "Green"
+
+try { Stop-Transcript } catch {}
 
 # Pause if running interactively
 if ([Environment]::UserInteractive) {
-    Write-Host "`nPress any key to close..." -ForegroundColor Gray
+    Write-Host "`nIf you see errors above, you can check: $TranscriptPath" -ForegroundColor Cyan
+    Write-Host "Press any key to close..." -ForegroundColor Gray
     $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 }
