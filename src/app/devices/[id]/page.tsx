@@ -221,9 +221,16 @@ public class WTS {
 try {
     Add-Type -TypeDefinition $WTSDefinition -ErrorAction SilentlyContinue
     $resp = 0
+    # Dynamically find the active console session OR any active user session
+    $sessions = (qwinsta /active) -split "\n" | Select-String ">|Active" | ForEach-Object {
+        if ($_ -match '(\d+)') { $matches[1] }
+    }
+    if ($sessions.Count -eq 0) { $sessions = 1..2 } # Fallback to common IDs
+    
     $title = "IT Support Alert"
-    # Try sessions 1-5 (common interactive sessions)
-    1..5 | ForEach-Object { [WTS]::WTSSendMessage([IntPtr]::Zero, $_, $title, ($title.Length * 2), "${escapedMsg}", (${escapedMsg}.Length * 2), 0x40, 0, [ref]$resp, $false) }
+    $sessions | ForEach-Object { 
+        [WTS]::WTSSendMessage([IntPtr]::Zero, [int]$_, $title, ($title.Length * 2), "${escapedMsg}", (${escapedMsg}.Length * 2), 0x40, 0, [ref]$resp, $false) 
+    }
 } catch {}
 
 # 2. Fallback: msg.exe and VBS
