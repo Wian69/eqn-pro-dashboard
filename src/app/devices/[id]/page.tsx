@@ -288,29 +288,6 @@ Unregister-ScheduledTask 'EQNBroadcast' -Confirm:$false;
         }
     };
 
-            const res = await fetch('/api/agent', {
-                method: 'PUT',
-                body: JSON.stringify({
-                    deviceId: agentData.deviceId,
-                    command: 'runScript',
-                    params: { code: psPayload }
-                }),
-                headers: { 'Content-Type': 'application/json' }
-            });
-            const data = await res.json();
-            if (data.success) {
-                setMessage({ type: 'success', text: 'Multi-layer broadcast triggered successfully.' });
-                setInstantMessage('');
-            }
-        } catch (err) {
-            setMessage({ type: 'error', text: 'Failed to broadcast message.' });
-        } finally {
-            setActionLoading(null);
-        }
-    };
-
-
-
     if (loading) return <div className="loading-container">Polishing device details...</div>;
     if (!device || device.error || !device.id) return <div className="error-container">Device not found.</div>;
 
