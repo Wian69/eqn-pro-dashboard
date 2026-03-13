@@ -281,6 +281,8 @@ Unregister-ScheduledTask 'EQNBroadcast' -Confirm:$false;
             if (data.success) {
                 setMessage({ type: 'success', text: 'Ironclad broadcast triggered. Checking device...' });
                 setInstantMessage('');
+                // Clear message after 5 seconds to avoid "stuck" feeling
+                setTimeout(() => setMessage(null), 5000);
             }
         } catch (err) {
             setMessage({ type: 'error', text: 'Failed to broadcast message.' });
