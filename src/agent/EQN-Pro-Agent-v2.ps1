@@ -100,22 +100,25 @@ function Get-DeviceIdentity {
 
 # --- Command Guard ---
 function Invoke-BrandedMessage {
-    param([string]$Message)
-    Write-Log "Triggering Branded Message: $Message"
-    $escaped = $Message.Replace('"', '""')
+    param(
+        [string]$Message,
+        [string]$Title = "IT Support Alert"
+    )
+    $msgScriptPath = "C:/ProgramData/EQNProAgent/msg-$((Get-Date).Ticks).ps1"
+    $escapedMsg = $Message.Replace('"', '`"').Replace("'", "''")
+    $escapedTitle = $Title.Replace('"', '`"').Replace("'", "''")
     
-    $UserScript = @"
-Add-Type -AssemblyName PresentationFramework;
-Add-Type -AssemblyName System.Windows.Forms;
-`$logoPath = '$logoPath';
-`$logoUri = "file:///`$logoPath";
-`$xaml = @"
-<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" Title="IT Alert" Height="380" Width="480" WindowStyle="None" AllowsTransparency="True" Background="Transparent" WindowStartupLocation="CenterScreen" Topmost="True">
+    $scriptContent = @"
+Add-Type -AssemblyName PresentationFramework
+Add-Type -AssemblyName System.Windows.Forms
+`$logoPath = '$logoPath'
+`$logoUri = "file:///`$logoPath"
+`$xaml = '<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" Title="$escapedTitle" Height="380" Width="480" WindowStyle="None" AllowsTransparency="True" Background="Transparent" WindowStartupLocation="CenterScreen" Topmost="True">
     <Border Background="#111111" CornerRadius="16" BorderBrush="#00d2ff" BorderThickness="2">
         <Grid Margin="25">
             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-            <Image Grid.Row="0" Source="`$logoUri" Height="60" Margin="0,0,0,20" Stretch="Uniform" Name="logoImg"/>
-            <TextBlock Grid.Row="1" Text="$escaped" Foreground="White" FontSize="18" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold"/>
+            <Image Grid.Row="0" Source="' + `$logoUri + '" Height="60" Margin="0,0,0,20" Stretch="Uniform" Name="logoImg"/>
+            <TextBlock Grid.Row="1" Text="$escapedMsg" Foreground="White" FontSize="18" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold"/>
             <StackPanel Grid.Row="2" Margin="0,20,0,0">
                 <TextBlock Text="Sent by Equinox IT Support: for more information email us: itsupport@eqncs.com" Foreground="#666" FontSize="10" HorizontalAlignment="Center" Margin="0,0,0,15"/>
                 <Button Name="btn" Content="Acknowledge" Height="36" Width="140" Background="#005a9c" Foreground="White" BorderThickness="0" FontSize="14" FontWeight="Bold">
@@ -126,24 +129,21 @@ Add-Type -AssemblyName System.Windows.Forms;
             </StackPanel>
         </Grid>
     </Border>
-</Window>
-"@;
+</Window>'
 if (!(Test-Path `$logoPath)) { `$xaml = `$xaml.Replace('Name="logoImg"', 'Visibility="Collapsed"') }
-`$window = [Windows.Markup.XamlReader]::Load([System.Xml.XmlReader]::Create([System.IO.StringReader]::new(`$xaml)));
-`$window.FindName('btn').Add_Click({`$window.Close()});
-`$window.ShowDialog() | Out-Null;
+`$window = [Windows.Markup.XamlReader]::Load([System.Xml.XmlReader]::Create([System.IO.StringReader]::new(`$xaml)))
+`$window.FindName('btn').Add_Click({`$window.Close()})
+`$window.ShowDialog() | Out-Null
 "@
-
-    $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($UserScript))
-    $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -EncodedCommand $encoded"
-    $principal = New-ScheduledTaskPrincipal -GroupId "S-1-5-32-545" -RunLevel Highest -LogonType Interactive
+    $scriptContent | Out-File $msgScriptPath -Encoding UTF8
     
+    $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File $msgScriptPath"
+    $principal = New-ScheduledTaskPrincipal -GroupId "S-1-5-32-545" -RunLevel Highest -LogonType Interactive
     $taskName = "EQNMsg-$(Get-Random)"
     Register-ScheduledTask -TaskName $taskName -Action $action -Principal $principal -Force | Out-Null
     Start-ScheduledTask $taskName
-
-    # Auto-cleanup task
-    Start-Job -ScriptBlock { param($t); Start-Sleep 300; Unregister-ScheduledTask $t -Confirm:$false } -ArgumentList $taskName | Out-Null
+    
+    Start-Job -ScriptBlock { param($t, $s); Start-Sleep 600; Unregister-ScheduledTask $t -Confirm:$false; Remove-Item $s -Force } -ArgumentList $taskName, $msgScriptPath | Out-Null
 }
 
 # --- Core Loop ---
@@ -211,9 +211,6 @@ while ($true) {
                     $status = "failed"
                 }
 
-                # Report output back
-                # (Assuming backend supports a PUT /api/agent/commands/{id})
-                # For now, we use a basic script result reporting if available, or just log it.
                 Write-Log "Result: $status - $output"
             }
         }

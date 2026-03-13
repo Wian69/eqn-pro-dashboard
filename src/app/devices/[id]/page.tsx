@@ -204,83 +204,29 @@ export default function DeviceDetails() {
         if (!instantMessage.trim() || !agentData) return;
         setActionLoading('sendMessage');
         try {
-            const escapedMsg = instantMessage.replace(/"/g, '""').replace(/'/g, "''");
-            const psPayload = `$msg = "${escapedMsg}"
-$log = 'C:/ProgramData/EQNProAgent/agent.log'
-
-# 1. Immediate Session 0 Bypasses (Native API)
-$WTSDefinition = @"
-using System;
-using System.Runtime.InteropServices;
-public class WTS {
-    [DllImport("wtsapi32.dll", SetLastError = true)]
-    public static extern bool WTSSendMessage(IntPtr hServer, int SessionId, String pTitle, int TitleLength, String pMessage, int MessageLength, int Style, int Timeout, out int pResponse, bool bWait);
-}
-"@
-try {
-    Add-Type -TypeDefinition $WTSDefinition -ErrorAction SilentlyContinue
-    $resp = 0
-    # Try sessions 1-3 (common active sessions)
-    1..3 | ForEach-Object { [WTS]::WTSSendMessage([IntPtr]::Zero, $_, "IT Support Alert", 32, $msg, ($msg.Length * 2), 0x40, 0, [ref]$resp, $false) }
-    try { msg * /TIME:300 $msg } catch {}
-} catch { "$(Get-Date -Format 'yyyy-MM-dd HH:mm') [Broadcast] WTS Error: $_" | Out-File $log -Append }
-
-# 2. Branded Window via Scheduled Task (Asynchronous)
-$UserScript = @'
-Add-Type -AssemblyName PresentationFramework;
-Add-Type -AssemblyName System.Windows.Forms;
-$logoPath = 'C:/ProgramData/EQNProAgent/logo.png';
-$logoUri = "file:///$logoPath";
-$xaml = @"
-<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" Title="IT Alert" Height="380" Width="480" WindowStyle="None" AllowsTransparency="True" Background="Transparent" WindowStartupLocation="CenterScreen" Topmost="True">
-    <Border Background="#111111" CornerRadius="16" BorderBrush="#005a9c" BorderThickness="2">
-        <Grid Margin="25">
-            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-            <Image Grid.Row="0" Source="$$logo" Height="60" Margin="0,0,0,20" Stretch="Uniform"/>
-            <TextBlock Grid.Row="1" Text="${escapedMsg}" Foreground="White" FontSize="18" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold"/>
-            <StackPanel Grid.Row="2" Margin="0,20,0,0">
-                <TextBlock Text="Sent by Equinox IT Support: for more information email us: itsupport@eqncs.com" Foreground="#666" FontSize="10" HorizontalAlignment="Center" Margin="0,0,0,15"/>
-                <Button Name="btn" Content="Acknowledge" Height="36" Width="140" Background="#005a9c" Foreground="White" BorderThickness="0" FontSize="14" FontWeight="Bold">
-                    <Button.Resources>
-                        <Style TargetType="Border"><Setter Property="CornerRadius" Value="18"/></Style>
-                    </Button.Resources>
-                </Button>
-            </StackPanel>
-        </Grid>
-    </Border>
-</Window>
-"@;
-if (Test-Path $logoPath) { $xaml = $xaml.Replace('$$logo', $logoUri) }
-$window = [Windows.Markup.XamlReader]::Load([System.Xml.XmlReader]::Create([System.IO.StringReader]::new($xaml)));
-$window.FindName('btn').Add_Click({$window.Close()});
-$window.Topmost = $true;
-$window.ShowDialog() | Out-Null;
-'@;
-
-$encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($UserScript));
-$action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -EncodedCommand $encoded";
-$principal = New-ScheduledTaskPrincipal -GroupId "S-1-5-32-545" -RunLevel Highest -LogonType Interactive; 
-Register-ScheduledTask -TaskName 'EQNBroadcast' -Action $action -Principal $principal -Force;
-Start-ScheduledTask 'EQNBroadcast';
-
-# Clean up task in 5 mins (non-blocking)
-$cleanup = "Start-Sleep -Seconds 300; Unregister-ScheduledTask 'EQNBroadcast' -Confirm:$false";
-Start-Job -ScriptBlock ([ScriptBlock]::Create($cleanup)) | Out-Null;
-
-"Broadcast Layers Triggered Successfully"`;
+            // Version check: if v2.0+, use the native 'msg' command
+            const isV2 = agentData.agentVersion && agentData.agentVersion.startsWith('2.');
+            
+            const payload = isV2 ? {
+                deviceId: agentData.deviceId,
+                command: 'msg',
+                params: { text: instantMessage, title: "IT Support Alert" }
+            } : {
+                deviceId: agentData.deviceId,
+                command: 'runScript',
+                params: { 
+                    code: `$msg = "${instantMessage.replace(/"/g, '""')}"; msg * /TIME:300 $msg` 
+                }
+            };
 
             const res = await fetch('/api/agent', {
                 method: 'PUT',
-                body: JSON.stringify({
-                    deviceId: agentData.deviceId,
-                    command: 'runScript',
-                    params: { code: psPayload }
-                }),
+                body: JSON.stringify(payload),
                 headers: { 'Content-Type': 'application/json' }
             });
             const data = await res.json();
             if (data.success) {
-                setMessage({ type: 'success', text: 'Ironclad broadcast triggered. Checking device...' });
+                setMessage({ type: 'success', text: isV2 ? 'Instant message queued.' : 'Legacy broadcast triggered.' });
                 setInstantMessage('');
                 setTimeout(() => setMessage(null), 5000);
             }
