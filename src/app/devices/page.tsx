@@ -161,7 +161,7 @@ export default function Devices() {
                         ) : filteredDevices.length === 0 ? (
                             <tr><td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>No devices match your filters.</td></tr>
                         ) : filteredDevices.map((dev, i) => {
-                            const isAgent = agents[dev.id];
+                            const isAgent = dev.serialNumber ? agents[dev.serialNumber] : agents[dev.id];
                             return (
                                 <tr
                                     key={i}
