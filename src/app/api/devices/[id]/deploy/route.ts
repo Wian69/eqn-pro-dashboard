@@ -14,8 +14,8 @@ export async function POST(
         const client = getGraphClient();
         
         // 1. Prepare the deployment script
-        // We use the Intune-optimized version of the script
-        const scriptPath = path.join(process.cwd(), 'src/agent/intune-package/EQN-Pro-Deploy.ps1');
+        // We use the unified version of the script
+        const scriptPath = path.join(process.cwd(), 'src/agent/EQN-Pro-Deploy.ps1');
         if (!fs.existsSync(scriptPath)) {
             throw new Error('Deployment script template not found.');
         }
@@ -23,15 +23,15 @@ export async function POST(
         let scriptContent = fs.readFileSync(scriptPath, 'utf8');
 
         // 2. Inject dynamic server URL if needed
-        // The script already has a default, but we can override it based on the current host
         const host = request.headers.get('host');
         const protocol = host?.includes('localhost') ? 'http' : 'https';
         const serverUrl = `${protocol}://${host}/api/agent`;
         
-        // Replace the default serverUrl in the script
+        // Replace the serverUrl in the script with a robust regex
+        // Matches $serverUrl = "..." with optional trailing spaces and comments
         scriptContent = scriptContent.replace(
-            /\$serverUrl = "https:\/\/eqn-pro-dashboard\.vercel\.app\/api\/agent"/g, 
-            `$serverUrl = "${serverUrl}"`
+            /\$serverUrl = "https:\/\/.*?"\s*(#.*)?/g, 
+            `$serverUrl = "${serverUrl}" # Dynamically injected by EQN Pro API`
         );
 
         // 3. Create the Shell Script in Intune
