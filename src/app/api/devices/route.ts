@@ -9,7 +9,7 @@ export async function GET() {
 
         // Fetch managed devices from Intune
         const devicesResponse = await client.api('/deviceManagement/managedDevices')
-            .select('id,deviceName,operatingSystem,complianceState,lastSyncDateTime')
+            .select('id,deviceName,operatingSystem,complianceState,lastSyncDateTime,serialNumber')
             .get();
 
         console.log(`[API] Successfully fetched ${devicesResponse.value?.length || 0} devices from Graph.`);
