@@ -177,90 +177,145 @@ export default function Devices() {
                             <tr><td colSpan={6} style={{ padding: '20px', textAlign: 'center' }}>Loading Unified Inventory...</td></tr>
                         ) : filteredDevices.length === 0 ? (
                             <tr><td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>No devices match your filters.</td></tr>
-                        ) : filteredDevices.map((dev, i) => {
-                            const isAgent = (dev.serialNumber && agents[dev.serialNumber]) || 
-                                           agents[dev.id] || 
-                                           Object.values(agents).find((a: any) => a.hostname?.toLowerCase() === dev.deviceName?.toLowerCase());
-                            return (
-                                <tr
-                                    key={i}
-                                    onClick={() => router.push(`/devices/${dev.id}`)}
-                                    style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.2s' }}
-                                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
-                                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                                >
-                                    <td style={{ padding: '16px', fontWeight: '500' }}>{dev.deviceName}</td>
-                                    <td style={{ padding: '16px' }}>{dev.operatingSystem}</td>
-                                    <td style={{ padding: '16px' }}>
-                                        <span style={{ color: dev.complianceState === 'compliant' ? '#22c55e' : '#ef4444' }}>
-                                            ● {dev.complianceState}
-                                        </span>
-                                    </td>
-                                    <td style={{ padding: '16px' }}>
-                                        {isAgent ? (
-                                            <span style={{ color: 'var(--accent)', fontSize: '0.75rem', padding: '4px 8px', borderRadius: '4px', background: 'rgba(var(--accent-rgb), 0.1)', border: '1px solid var(--accent)' }}>
-                                                EQN PRO
+                        ) : (() => {
+                            const linkedAgentIds = new Set<string>();
+                            const rows = filteredDevices.map((dev, i) => {
+                                // IMPROVED MATCHING LOGIC
+                                const isAgent = Object.values(agents).find((a: any) => {
+                                    const serialMatch = dev.serialNumber && a.deviceId && 
+                                        dev.serialNumber.trim().toLowerCase() === a.deviceId.trim().toLowerCase();
+                                    
+                                    const hostnameMatch = dev.deviceName && a.hostname && 
+                                        dev.deviceName.toLowerCase().includes(a.hostname.toLowerCase());
+                                    
+                                    const uuidMatch = dev.id === a.deviceId;
+                                    
+                                    return serialMatch || hostnameMatch || uuidMatch;
+                                });
+
+                                if (isAgent) {
+                                    linkedAgentIds.add((isAgent as any).deviceId);
+                                }
+
+                                return (
+                                    <tr
+                                        key={i}
+                                        onClick={() => router.push(`/devices/${dev.id}`)}
+                                        style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.2s' }}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                    >
+                                        <td style={{ padding: '16px', fontWeight: '500' }}>{dev.deviceName}</td>
+                                        <td style={{ padding: '16px' }}>{dev.operatingSystem}</td>
+                                        <td style={{ padding: '16px' }}>
+                                            <span style={{ color: dev.complianceState === 'compliant' ? '#22c55e' : '#ef4444' }}>
+                                                ● {dev.complianceState}
                                             </span>
-                                        ) : (
-                                            <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Managed</span>
-                                        )}
-                                    </td>
-                                    <td style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                                        {new Date(dev.lastSyncDateTime).toLocaleDateString()}
-                                    </td>
-                                    <td style={{ padding: '16px', textAlign: 'right' }}>
-                                        {isAgent ? (
-                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px' }}>
-                                                {isAgent.status === 'online' ? (
-                                                    <span style={{ color: '#22c55e', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                                                        ✅ ACTIVE AGENT
-                                                    </span>
-                                                ) : (
-                                                    <>
-                                                        <span style={{ color: '#ef4444', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                                                            ❌ OFFLINE
+                                        </td>
+                                        <td style={{ padding: '16px' }}>
+                                            {isAgent ? (
+                                                <span style={{ color: 'var(--accent)', fontSize: '0.75rem', padding: '4px 8px', borderRadius: '4px', background: 'rgba(var(--accent-rgb), 0.1)', border: '1px solid var(--accent)' }}>
+                                                    EQN PRO
+                                                </span>
+                                            ) : (
+                                                <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Managed</span>
+                                            )}
+                                        </td>
+                                        <td style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                                            {new Date(dev.lastSyncDateTime).toLocaleDateString()}
+                                        </td>
+                                        <td style={{ padding: '16px', textAlign: 'right' }}>
+                                            {isAgent ? (
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px' }}>
+                                                    {(isAgent as any).status === 'online' ? (
+                                                        <span style={{ color: '#22c55e', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                                            ✅ ACTIVE AGENT
                                                         </span>
-                                                        <button
-                                                            onClick={(e) => resetAgent(isAgent.deviceId, e)}
-                                                            className="btn-secondary"
-                                                            style={{
-                                                                padding: '4px 8px',
-                                                                borderRadius: '4px',
-                                                                fontSize: '0.7rem',
-                                                                background: 'rgba(239, 68, 68, 0.1)',
-                                                                border: '1px solid #ef4444',
-                                                                color: '#ef4444'
-                                                            }}
-                                                        >
-                                                            Reset
-                                                        </button>
-                                                    </>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <button
-                                                onClick={(e) => deployAgent(dev.id, e)}
-                                                disabled={deploying === dev.id}
-                                                style={{
-                                                    padding: '6px 12px',
-                                                    borderRadius: '6px',
-                                                    background: deploying === dev.id ? '#333' : 'var(--accent)',
-                                                    color: '#fff',
-                                                    border: 'none',
-                                                    fontSize: '0.75rem',
-                                                    fontWeight: '600',
-                                                    cursor: deploying === dev.id ? 'not-allowed' : 'pointer',
-                                                    transition: 'all 0.2s',
-                                                    opacity: deploying === dev.id ? 0.7 : 1
-                                                }}
-                                            >
-                                                {deploying === dev.id ? '⌛ Deploying...' : '🚀 Deploy Agent'}
-                                            </button>
-                                        )}
-                                    </td>
-                                </tr>
-                            );
-                        })}
+                                                    ) : (
+                                                        <>
+                                                            <span style={{ color: '#ef4444', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                                                ❌ OFFLINE
+                                                            </span>
+                                                            <button
+                                                                onClick={(e) => resetAgent((isAgent as any).deviceId, e)}
+                                                                className="btn-secondary"
+                                                                style={{
+                                                                    padding: '4px 8px',
+                                                                    borderRadius: '4px',
+                                                                    fontSize: '0.7rem',
+                                                                    background: 'rgba(239, 68, 68, 0.1)',
+                                                                    border: '1px solid #ef4444',
+                                                                    color: '#ef4444'
+                                                                }}
+                                                            >
+                                                                Reset
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={(e) => deployAgent(dev.id, e)}
+                                                    disabled={deploying === dev.id}
+                                                    style={{
+                                                        padding: '6px 12px',
+                                                        borderRadius: '6px',
+                                                        background: deploying === dev.id ? '#333' : 'var(--accent)',
+                                                        color: '#fff',
+                                                        border: 'none',
+                                                        fontSize: '0.75rem',
+                                                        fontWeight: '600',
+                                                        cursor: deploying === dev.id ? 'not-allowed' : 'pointer',
+                                                        transition: 'all 0.2s',
+                                                        opacity: deploying === dev.id ? 0.7 : 1
+                                                    }}
+                                                >
+                                                    {deploying === dev.id ? '⌛ Deploying...' : '🚀 Deploy Agent'}
+                                                </button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            });
+
+                            // Find unlinked agents
+                            const unlinkedAgents = Object.values(agents).filter((a: any) => !linkedAgentIds.has(a.deviceId));
+                            
+                            if (unlinkedAgents.length > 0) {
+                                rows.push(
+                                    <tr key="unlinked-header">
+                                        <td colSpan={6} style={{ padding: '32px 16px 8px', color: 'var(--accent)', fontWeight: 'bold', fontSize: '0.9rem', border: 'none' }}>
+                                            ⚠️ UNLINKED CLOUD AGENTS ({unlinkedAgents.length})
+                                        </td>
+                                    </tr>
+                                );
+                                
+                                unlinkedAgents.forEach((a: any, idx) => {
+                                    rows.push(
+                                        <tr key={`unlinked-${idx}`} style={{ borderBottom: '1px solid var(--border)', background: 'rgba(255, 107, 0, 0.05)' }}>
+                                            <td style={{ padding: '16px', fontWeight: '500' }}>{a.hostname || 'Unknown'}</td>
+                                            <td style={{ padding: '16px', color: 'var(--text-muted)' }}>Non-Intune / Unmatched</td>
+                                            <td style={{ padding: '16px' }}><span style={{ color: '#f59e0b' }}>● Unlinked</span></td>
+                                            <td style={{ padding: '16px' }}>
+                                                <span style={{ color: 'var(--accent)', fontSize: '0.75rem', padding: '4px 8px', borderRadius: '4px', background: 'rgba(var(--accent-rgb), 0.1)', border: '1px solid var(--accent)' }}>
+                                                    EQN PRO
+                                                </span>
+                                            </td>
+                                            <td style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                                                {new Date(a.lastSeen).toLocaleDateString()}
+                                            </td>
+                                            <td style={{ padding: '16px', textAlign: 'right' }}>
+                                                <span style={{ color: a.status === 'online' ? '#22c55e' : '#ef4444', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                                    {a.status === 'online' ? '✅ ACTIVE' : '❌ OFFLINE'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                });
+                            }
+
+                            return rows;
+                        })()}
                     </tbody>
                 </table>
             </div>
