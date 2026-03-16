@@ -49,44 +49,51 @@ function Sync-AgentEngine {
 }
 
 # --- Execution ---
-Write-BootLog "EQN Pro Bootstrapper Awake"
+try {
+    Write-BootLog "EQN Pro Bootstrapper Awake"
 
-# 1. Ensure we have the engine
-if (!(Test-Path $targetPath) -or $args -contains "-force") {
-    Write-BootLog "Force update requested. Killing existing agent processes and clearing locks..."
+    # 1. Ensure we have the engine
+    if (!(Test-Path $targetPath) -or $args -contains "-force") {
+        Write-BootLog "Force update/sync requested..."
+        
+        # Kill any existing agent processes
+        Get-Process powershell -ErrorAction SilentlyContinue | Where-Object { 
+            $_.CommandLine -like "*agent-engine.ps1*" -or $_.CommandLine -like "*EQN-Pro-Agent*"
+        } | Stop-Process -Force -ErrorAction SilentlyContinue
+        
+        # Clear stale locks
+        $lockFile = Join-Path $targetDir "agent_v2.lock"
+        if (Test-Path $lockFile) { Remove-Item $lockFile -Force -ErrorAction SilentlyContinue }
+        
+        $synced = Sync-AgentEngine
+        if (!$synced -and !(Test-Path $targetPath)) {
+            throw "Failed to sync agent engine and no local copy exists."
+        }
+    }
+
+    # 2. Register/Update Persistence
+    $powershellPath = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
+    $action = New-ScheduledTaskAction -Execute $powershellPath -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$targetPath`""
     
-    # Kill any existing agent processes to free up file locks
-    Get-Process powershell -ErrorAction SilentlyContinue | Where-Object { 
-        $_.CommandLine -like "*agent-engine.ps1*" -or $_.CommandLine -like "*EQN-Pro-Agent*"
-    } | Stop-Process -Force -ErrorAction SilentlyContinue
-    
-    # Clear stale locks
-    $lockFile = Join-Path $targetDir "agent_v2.lock"
-    if (Test-Path $lockFile) { Remove-Item $lockFile -Force -ErrorAction SilentlyContinue }
-    
-    Sync-AgentEngine
-}
+    # Use a simpler trigger: Every 1 minute, indefinitely
+    $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1).ToString("HH:mm") -RepetitionInterval (New-TimeSpan -Minutes 1)
+    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -RestartCount 5 -RestartInterval (New-TimeSpan -Minutes 1)
 
-# 2. Register/Update Persistence
-$action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$targetPath`""
-$trigger1 = New-ScheduledTaskTrigger -AtStartup
-$trigger2 = New-ScheduledTaskTrigger -Once -At (Get-Date).ToString("HH:mm") -RepetitionInterval (New-TimeSpan -Minutes 1)
-$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -RestartCount 5 -RestartInterval (New-TimeSpan -Minutes 1)
+    Write-BootLog "Registering persistence task 'EQNProLiveAgent'..."
+    Register-ScheduledTask -TaskName "EQNProLiveAgent" -Action $action -Trigger $trigger -Settings $settings -User "SYSTEM" -RunLevel Highest -Force | Out-Null
 
-$existingTask = Get-ScheduledTask -TaskName "EQNProLiveAgent" -ErrorAction SilentlyContinue
-if (!$existingTask) {
-    Write-BootLog "Registering persistence task..."
-    Register-ScheduledTask -TaskName "EQNProLiveAgent" -Action $action -Trigger $trigger1, $trigger2 -Settings $settings -User "SYSTEM" -RunLevel Highest | Out-Null
-} else {
-    # Update existing task logic/args if changed
-    Write-BootLog "Updating existing persistence task..."
-    Set-ScheduledTask -TaskName "EQNProLiveAgent" -Action $action -Trigger $trigger1, $trigger2 -Settings $settings -User "SYSTEM" -RunLevel Highest | Out-Null
-}
-
-# 3. Launch the engine (asynchronously)
-if ((Get-ScheduledTask -TaskName "EQNProLiveAgent").State -ne "Running") {
+    # 3. Launch the engine (asynchronously)
     Write-BootLog "Starting Agent Engine..."
     Start-ScheduledTask -TaskName "EQNProLiveAgent"
-}
 
-Write-BootLog "Bootstrapper Finished. Agent is alive."
+    # 4. Set Registry Identity for Intune Detection
+    $registryPath = "HKLM:\SOFTWARE\EQNProAgent"
+    if (!(Test-Path $registryPath)) { New-Item -Path $registryPath -Force | Out-Null }
+    Set-ItemProperty -Path $registryPath -Name "Version" -Value "2.1.1" -Force
+
+    Write-BootLog "Bootstrapper Finished. Agent is alive."
+    exit 0
+} catch {
+    Write-BootLog "CRITICAL ERROR: $($_.Exception.Message)"
+    exit 1
+}

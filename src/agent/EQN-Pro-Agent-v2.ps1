@@ -8,12 +8,12 @@
     software inventory, and remote command execution.
     Supports native WPF broadcasts and direct device control.
 
-.VERSION 2.1.0
+.VERSION 2.1.1
 #>
 
 # --- Configuration & Identity ---
 $serverUrl = "https://eqn-pro-dashboard.vercel.app/api/agent" # Hardcoded for packaging; injected for dynamic deploy
-$agentVersion = "2.1.0"
+$agentVersion = "2.1.1"
 $logPath = "C:/ProgramData/EQNProAgent/agent.log"
 $logoPath = "C:/ProgramData/EQNProAgent/logo.png"
 
