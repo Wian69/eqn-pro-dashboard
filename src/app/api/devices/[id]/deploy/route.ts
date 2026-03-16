@@ -64,8 +64,8 @@ export async function POST(
         };
 
         // We use the beta endpoint for direct execution actions
-        // NOTE: Attempting executeCloudScript which is the official direct action segment
-        await client.api(`/deviceManagement/managedDevices/${managedDeviceId}/microsoft.graph.executeCloudScript`)
+        // NOTE: runCloudScript is the correct segment for on-demand PowerShell scripts
+        await client.api(`/deviceManagement/managedDevices/${managedDeviceId}/runCloudScript`)
             .version('beta')
             .post(payload);
         
