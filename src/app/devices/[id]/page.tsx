@@ -107,7 +107,17 @@ export default function DeviceDetails() {
             const results = agentData.commands.filter((c: any) => c.status === 'completed' || c.status === 'failed');
             setScriptResults(results.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
         }
-    }, [agentData]);
+
+        // Context-aware pre-population
+        if (device && !auditUser && !recoveryPath) {
+            const upn = device.userPrincipalName || device.userDisplayName || '';
+            const extractedUser = upn.includes('@') ? upn.split('@')[0] : upn.split(' ')[0] || '';
+            if (extractedUser) {
+                setAuditUser(extractedUser);
+                setRecoveryPath(`C:\\Users\\${extractedUser}\\Documents`);
+            }
+        }
+    }, [agentData, device]);
 
     const handleAction = async (action: string, promptName = false) => {
         let newName = '';
@@ -480,15 +490,15 @@ export default function DeviceDetails() {
                                     <FileSearch size={14} className="icon-blue" />
                                     <input 
                                         type="text" 
-                                        placeholder="Specific Username (Optional)" 
+                                        placeholder={`Target user (e.g. ${auditUser || 'system'})`} 
                                         value={auditUser}
                                         onChange={(e) => setAuditUser(e.target.value)}
                                         className="security-input"
                                     />
                                 </div>
                             </div>
-                            <button 
-                                className="security-btn audit" 
+                            <button
+                                className="security-btn audit"
                                 onClick={() => triggerSecurityTool('audit')}
                                 disabled={!isAgentOnline() || actionLoading === 'audit'}
                                 style={{ marginTop: 'auto' }}
@@ -510,7 +520,7 @@ export default function DeviceDetails() {
                                 <label>Target File/Folder Path</label>
                                 <input 
                                     type="text" 
-                                    placeholder="C:\Users\Username\Documents\Secret.zip" 
+                                    placeholder={`e.g. ${recoveryPath || 'C:\\Users\\User\\Desktop\\Secret.zip'}`} 
                                     value={recoveryPath}
                                     onChange={(e) => setRecoveryPath(e.target.value)}
                                     className="security-input"
