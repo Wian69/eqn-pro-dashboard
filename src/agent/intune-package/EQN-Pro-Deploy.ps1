@@ -86,10 +86,13 @@ try {
     Write-BootLog "Starting Agent Engine..."
     Start-ScheduledTask -TaskName "EQNProLiveAgent"
 
-    # 4. Set Registry Identity for Intune Detection
-    $registryPath = "HKLM:\SOFTWARE\EQNProAgent"
-    if (!(Test-Path $registryPath)) { New-Item -Path $registryPath -Force | Out-Null }
-    Set-ItemProperty -Path $registryPath -Name "Version" -Value "2.1.1" -Force
+    # 4. Set Registry Identity for Intune Detection (Force 64-bit Hive)
+    $registryPath = "SOFTWARE\EQNProAgent"
+    $baseKey = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::LocalMachine, [Microsoft.Win32.RegistryView]::Registry64)
+    $key = $baseKey.CreateSubKey($registryPath)
+    $key.SetValue("Version", "2.1.2")
+    $key.Close()
+    $baseKey.Close()
 
     Write-BootLog "Bootstrapper Finished. Agent is alive."
     exit 0
