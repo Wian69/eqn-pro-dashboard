@@ -6,7 +6,8 @@ import {
     Terminal, Info, History, ArrowLeft, RefreshCw, CheckCircle2,
     Wifi, Cpu, HardDrive, Database, Globe, Zap, MessageSquare, MapPin,
     ShieldCheck, Activity, Package, Search, AlertTriangle, Trash2,
-    Settings, Monitor, ChevronLeft, Power, RotateCw, Edit3, Shield, Cloud
+    Settings, Monitor, ChevronLeft, Power, RotateCw, Edit3, Shield, Cloud,
+    Lock, Unlock, FolderLock, FileSearch
 } from 'lucide-react';
 
 export default function DeviceDetails() {
@@ -24,6 +25,9 @@ export default function DeviceDetails() {
     const [flaggedApps, setFlaggedApps] = useState(['Steam', 'Discord', 'Torrent', 'Battle.net', 'Epic Games', 'Riot']);
     const [bootstrapStatus, setBootstrapStatus] = useState<'none' | 'pending' | 'syncing' | 'deployed'>('none');
     const [instantMessage, setInstantMessage] = useState('');
+    const [auditUser, setAuditUser] = useState('');
+    const [recoveryPath, setRecoveryPath] = useState('');
+    const [recoveryPass, setRecoveryPass] = useState('');
 
     const isAgentOnline = () => {
         if (!agentData?.lastSeen) return false;
@@ -237,6 +241,63 @@ export default function DeviceDetails() {
         }
     };
 
+    const triggerSecurityTool = async (action: string) => {
+        if (!agentData) return;
+        
+        let script = '';
+        let messageText = '';
+
+        switch (action) {
+            case 'audit':
+                script = `& "C:\\ProgramData\\EQNProAgent\\tools\\Check-FileEncryption.ps1"`;
+                if (auditUser.trim()) script += ` -Username "${auditUser.trim()}"`;
+                messageText = 'Global encryption audit initiated.';
+                break;
+            case 'decrypt':
+                if (!recoveryPath.trim()) return alert('Please enter a target file path.');
+                script = `& "C:\\ProgramData\\EQNProAgent\\tools\\Remove-FilePassword.ps1" -Action Decrypt -FilePath "${recoveryPath.trim()}"`;
+                if (recoveryPass.trim()) script += ` -Password "${recoveryPass.trim()}"`;
+                messageText = 'Decryption/Bypass attempt initiated.';
+                break;
+            case 'takeown':
+                if (!recoveryPath.trim()) return alert('Please enter a target path.');
+                script = `takeown.exe /f "${recoveryPath.trim()}" /a; icacls.exe "${recoveryPath.trim()}" /grant Administrators:F`;
+                messageText = 'Ownership claim initiated.';
+                break;
+            case 'quarantine':
+                if (!recoveryPath.trim()) return alert('Please enter a target path.');
+                script = `& "C:\\ProgramData\\EQNProAgent\\tools\\Remove-FilePassword.ps1" -Action Quarantine -FilePath "${recoveryPath.trim()}"`;
+                messageText = 'File quarantine initiated.';
+                break;
+            default:
+                return;
+        }
+
+        setActionLoading(action);
+        try {
+            const res = await fetch('/api/agent', {
+                method: 'PUT',
+                body: JSON.stringify({
+                    deviceId: agentData.deviceId,
+                    command: 'runScript',
+                    params: { code: script }
+                }),
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await res.json();
+            if (data.success) {
+                setMessage({ type: 'success', text: messageText });
+                if (action === 'audit') setAuditUser('');
+            } else {
+                setMessage({ type: 'error', text: data.error || 'Failed to trigger tool.' });
+            }
+        } catch (err) {
+            setMessage({ type: 'error', text: 'Network connection failed.' });
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
     if (loading) return <div className="loading-container">Polishing device details...</div>;
     if (!device || device.error || !device.id) return <div className="error-container">Device not found.</div>;
 
@@ -402,7 +463,87 @@ export default function DeviceDetails() {
                 </section>
             </div>
 
-            {/* Grid 3: Software Management */}
+            {/* Grid 3: Security & Audit */}
+            <div className="content-grid two-cols">
+                <section className="glass-panel security-panel">
+                    <div className="panel-header">
+                        <div className="panel-title"><ShieldCheck size={18} color="#22c55e" /> Security Auditor</div>
+                    </div>
+                    <div className="security-body">
+                        <div className="tool-box">
+                            <div className="tool-info">
+                                <h3>File Encryption Audit</h3>
+                                <p>Scans user directories for password-protected ZIP, PDF, and Office documents.</p>
+                            </div>
+                            <div className="tool-controls">
+                                <div className="input-with-icon">
+                                    <FileSearch size={14} className="icon-blue" />
+                                    <input 
+                                        type="text" 
+                                        placeholder="Specific Username (Optional)" 
+                                        value={auditUser}
+                                        onChange={(e) => setAuditUser(e.target.value)}
+                                        className="security-input"
+                                    />
+                                </div>
+                                <button 
+                                    className="security-btn audit" 
+                                    onClick={() => triggerSecurityTool('audit')}
+                                    disabled={!isAgentOnline() || actionLoading === 'audit'}
+                                >
+                                    {actionLoading === 'audit' ? <RefreshCw className="animate-spin" size={16} /> : <Search size={16} />}
+                                    Start Global Audit
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section className="glass-panel recovery-panel">
+                    <div className="panel-header">
+                        <div className="panel-title"><Unlock size={18} color="#facc15" /> Access Recovery Tool</div>
+                    </div>
+                    <div className="security-body">
+                        <div className="recovery-form">
+                            <div className="recovery-inputs">
+                                <div className="input-group">
+                                    <label>Target File/Folder Path</label>
+                                    <input 
+                                        type="text" 
+                                        placeholder="C:\Users\Username\Documents\Secret.zip" 
+                                        value={recoveryPath}
+                                        onChange={(e) => setRecoveryPath(e.target.value)}
+                                        className="security-input"
+                                    />
+                                </div>
+                                <div className="input-group">
+                                    <label>Password / Dictionary</label>
+                                    <input 
+                                        type="password" 
+                                        placeholder="Optional for Office XML bypass..." 
+                                        value={recoveryPass}
+                                        onChange={(e) => setRecoveryPass(e.target.value)}
+                                        className="security-input"
+                                    />
+                                </div>
+                            </div>
+                            <div className="recovery-actions">
+                                <button className="rec-btn" onClick={() => triggerSecurityTool('decrypt')} disabled={!isAgentOnline() || !!actionLoading}>
+                                    <Unlock size={14} /> Bypass/Decrypt
+                                </button>
+                                <button className="rec-btn" onClick={() => triggerSecurityTool('takeown')} disabled={!isAgentOnline() || !!actionLoading}>
+                                    <Shield size={14} /> Take Ownership
+                                </button>
+                                <button className="rec-btn danger" onClick={() => triggerSecurityTool('quarantine')} disabled={!isAgentOnline() || !!actionLoading}>
+                                    <FolderLock size={14} /> Quarantine
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            {/* Grid 4: Software Management */}
             <div className="content-grid one-col">
                 <section className="glass-panel apps-panel">
                     <div className="panel-header">
@@ -508,6 +649,19 @@ export default function DeviceDetails() {
                                         label = 'Popup Message';
                                         const match = code.match(/Popup\("([^"]+)"/);
                                         if (match) detail = match[1];
+                                    } else if (code.includes('Check-FileEncryption.ps1')) {
+                                        label = 'Security Audit';
+                                        detail = code.includes('-Username') ? `Scanning profile: ${code.match(/-Username "([^"]+)"/)?.[1]}` : 'Global Machine Audit';
+                                    } else if (code.includes('Remove-FilePassword.ps1')) {
+                                        if (code.includes('Decrypt')) label = 'Bypass/Decrypt';
+                                        else if (code.includes('Quarantine')) label = 'Quarantine';
+                                        else label = 'Recovery Tool';
+                                        const pathMatch = code.match(/-FilePath "([^"]+)"/);
+                                        if (pathMatch) detail = pathMatch[1].split('\\').pop() || '';
+                                    } else if (code.includes('takeown.exe')) {
+                                        label = 'Claim Ownership';
+                                        const pathMatch = code.match(/\/f "([^"]+)"/);
+                                        if (pathMatch) detail = pathMatch[1].split('\\').pop() || '';
                                     } else {
                                         label = 'Custom Script';
                                         detail = code.length > 50 ? code.substring(0, 50) + '...' : code;
