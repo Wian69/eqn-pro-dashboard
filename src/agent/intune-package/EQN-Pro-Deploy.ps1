@@ -90,7 +90,7 @@ try {
     $registryPath = "SOFTWARE\EQNProAgent"
     $baseKey = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::LocalMachine, [Microsoft.Win32.RegistryView]::Registry64)
     $key = $baseKey.CreateSubKey($registryPath)
-    $key.SetValue("Version", "2.1.2")
+    $key.SetValue("Version", "2.1.3")
     $key.Close()
     $baseKey.Close()
 

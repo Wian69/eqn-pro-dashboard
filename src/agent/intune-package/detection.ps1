@@ -1,5 +1,5 @@
 $registryPath = "SOFTWARE\EQNProAgent"
-$targetVersion = "2.1.2"
+$targetVersion = "2.1.3"
 
 # Explicitly check 64-bit hive first
 $baseKey = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::LocalMachine, [Microsoft.Win32.RegistryView]::Registry64)
