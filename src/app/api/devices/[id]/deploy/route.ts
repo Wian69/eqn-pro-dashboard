@@ -7,13 +7,34 @@ export async function POST(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const { id: deviceId } = await params;
-    console.log(`[API] Initiating Intune Agent Deployment for Device: ${deviceId}`);
+    const { id: deviceIdOrSerial } = await params;
+    console.log(`[API] Initiating Intune Agent Deployment for Device Target: ${deviceIdOrSerial}`);
 
     try {
         const client = getGraphClient();
         
-        // 1. Prepare the Deployment Script (v2.0 Global Edition)
+        // 1. Resolve TRUE Device UUID (Serial Number to ID lookup)
+        let managedDeviceId = deviceIdOrSerial;
+        try {
+            console.log(`[API] Resolving true ManagedDevice ID for ${deviceIdOrSerial}...`);
+            // Try as direct ID first
+            await client.api(`/deviceManagement/managedDevices/${deviceIdOrSerial}`).select('id').get();
+        } catch (e) {
+            // Fallback: Lookup by Serial Number
+            const searchRes = await client.api('/deviceManagement/managedDevices')
+                .filter(`serialNumber eq '${deviceIdOrSerial}'`)
+                .select('id')
+                .get();
+            
+            if (searchRes.value && searchRes.value.length > 0) {
+                managedDeviceId = searchRes.value[0].id;
+                console.log(`[API] Resolved Serial ${deviceIdOrSerial} to UUID: ${managedDeviceId}`);
+            } else {
+                throw new Error(`Device resolution failed: ${deviceIdOrSerial} not found in Intune.`);
+            }
+        }
+
+        // 2. Prepare the Deployment Script (v2.0 Global Edition)
         const agentFilePath = path.join(process.cwd(), 'src', 'agent', 'EQN-Pro-Agent-v2.ps1');
         let scriptContent = '';
         
@@ -25,16 +46,15 @@ export async function POST(
             scriptContent = fs.readFileSync(fallbackPath, 'utf8');
         }
 
-        // 2. Inject dynamic server URL
-        // We use the production URL for global reliability
+        // 3. Inject dynamic server URL
         const serverUrl = 'https://eqn-pro-dashboard.vercel.app/api/agent';
         scriptContent = scriptContent.replace(
             /^\$serverUrl\s*=\s*".*?"(?:\s*#.*)?/m,
             `$serverUrl = "${serverUrl}" # Dynamically injected by EQN Pro API`
         );
 
-        // 3. Execute the script directly on the device via Intune's direct action
-        console.log(`[API] Executing direct v2.0 cloud script on device ${deviceId} via executeCloudScript...`);
+        // 4. Execute the script directly on the device via Intune's direct action
+        console.log(`[API] Executing direct cloud action on device ${managedDeviceId} (Resolved from ${deviceIdOrSerial})...`);
         
         const payload = {
             scriptContent: Buffer.from(scriptContent).toString('base64'),
@@ -44,15 +64,17 @@ export async function POST(
         };
 
         // We use the beta endpoint for direct execution actions
-        await client.api(`/deviceManagement/managedDevices/${deviceId}/microsoft.graph.executeCloudScript`)
+        // NOTE: Attempting executeCloudScript which is the official direct action segment
+        await client.api(`/deviceManagement/managedDevices/${managedDeviceId}/microsoft.graph.executeCloudScript`)
             .version('beta')
             .post(payload);
         
-        console.log(`[API] Cloud script execution triggered successfully for device ${deviceId}`);
+        console.log(`[API] Cloud script execution triggered successfully for device ${managedDeviceId}`);
 
         return NextResponse.json({ 
             success: true, 
-            message: 'Deployment triggered successfully via direct cloud action.'
+            message: 'Deployment triggered successfully via direct cloud action.',
+            resolvedId: managedDeviceId
         });
 
     } catch (error: any) {
