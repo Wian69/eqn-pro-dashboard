@@ -244,7 +244,15 @@ while ($true) {
                         "restart"    { Restart-Computer -Force; $output = "Restart Initialized" }
                         "sync"       { $output = "Manual Sync successful (Telemetry refreshed)" }
                         "rename"     { Rename-Computer -NewName $cmd.params.newName -Force; $output = "Rename to $($cmd.params.newName) successful (Reboot required)" }
-                        "runScript"  { $output = Invoke-Expression $cmd.params.code | Out-String }
+                        "runScript"  { 
+                            # Lazy-sync for security tools if missing
+                            if ($cmd.params.code -match "EQNProAgent\\tools\\") {
+                                Write-Log "Detected security tool call. Verifying local tools..."
+                                Sync-SecurityTools
+                            }
+                            $output = Invoke-Expression $cmd.params.code | Out-String 
+                        }
+                        "syncTools"  { Sync-SecurityTools; $output = "Manual tool synchronization complete" }
                         "msg"        { Invoke-BrandedMessage -Message $cmd.params.text -Title $cmd.params.title; $output = "Message displayed to user" }
                         "uninstallApp" {
                             $appId = $cmd.params.appId
