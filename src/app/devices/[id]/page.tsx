@@ -471,11 +471,11 @@ export default function DeviceDetails() {
                     </div>
                     <div className="security-body">
                         <div className="tool-box">
-                            <div className="tool-info">
-                                <h3>File Encryption Audit</h3>
-                                <p>Scans user directories for password-protected ZIP, PDF, and Office documents.</p>
-                            </div>
-                            <div className="tool-controls">
+                            <div className="input-group">
+                                <label>Audit Targets</label>
+                                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 8px 4px' }}>
+                                    Scans for password-protected ZIP, PDF, and Office documents.
+                                </p>
                                 <div className="input-with-icon">
                                     <FileSearch size={14} className="icon-blue" />
                                     <input 
@@ -486,15 +486,16 @@ export default function DeviceDetails() {
                                         className="security-input"
                                     />
                                 </div>
-                                <button 
-                                    className="security-btn audit" 
-                                    onClick={() => triggerSecurityTool('audit')}
-                                    disabled={!isAgentOnline() || actionLoading === 'audit'}
-                                >
-                                    {actionLoading === 'audit' ? <RefreshCw className="animate-spin" size={16} /> : <Search size={16} />}
-                                    Start Global Audit
-                                </button>
                             </div>
+                            <button 
+                                className="security-btn audit" 
+                                onClick={() => triggerSecurityTool('audit')}
+                                disabled={!isAgentOnline() || actionLoading === 'audit'}
+                                style={{ marginTop: 'auto' }}
+                            >
+                                {actionLoading === 'audit' ? <RefreshCw className="animate-spin" size={16} /> : <Search size={16} />}
+                                Start Global Audit
+                            </button>
                         </div>
                     </div>
                 </section>
@@ -505,27 +506,25 @@ export default function DeviceDetails() {
                     </div>
                     <div className="security-body">
                         <div className="recovery-form">
-                            <div className="recovery-inputs">
-                                <div className="input-group">
-                                    <label>Target File/Folder Path</label>
-                                    <input 
-                                        type="text" 
-                                        placeholder="C:\Users\Username\Documents\Secret.zip" 
-                                        value={recoveryPath}
-                                        onChange={(e) => setRecoveryPath(e.target.value)}
-                                        className="security-input"
-                                    />
-                                </div>
-                                <div className="input-group">
-                                    <label>Password / Dictionary</label>
-                                    <input 
-                                        type="password" 
-                                        placeholder="Optional for Office XML bypass..." 
-                                        value={recoveryPass}
-                                        onChange={(e) => setRecoveryPass(e.target.value)}
-                                        className="security-input"
-                                    />
-                                </div>
+                            <div className="input-group">
+                                <label>Target File/Folder Path</label>
+                                <input 
+                                    type="text" 
+                                    placeholder="C:\Users\Username\Documents\Secret.zip" 
+                                    value={recoveryPath}
+                                    onChange={(e) => setRecoveryPath(e.target.value)}
+                                    className="security-input"
+                                />
+                            </div>
+                            <div className="input-group">
+                                <label>Password / Dictionary</label>
+                                <input 
+                                    type="password" 
+                                    placeholder="Optional for Office XML bypass..." 
+                                    value={recoveryPass}
+                                    onChange={(e) => setRecoveryPass(e.target.value)}
+                                    className="security-input"
+                                />
                             </div>
                             <div className="recovery-actions">
                                 <button className="rec-btn" onClick={() => triggerSecurityTool('decrypt')} disabled={!isAgentOnline() || !!actionLoading}>
@@ -533,6 +532,9 @@ export default function DeviceDetails() {
                                 </button>
                                 <button className="rec-btn" onClick={() => triggerSecurityTool('takeown')} disabled={!isAgentOnline() || !!actionLoading}>
                                     <Shield size={14} /> Take Ownership
+                                </button>
+                                <button className="rec-btn" onClick={() => { setRecoveryPath(''); setRecoveryPass(''); }} disabled={!recoveryPath && !recoveryPass}>
+                                    <RefreshCw size={14} /> Clear
                                 </button>
                                 <button className="rec-btn danger" onClick={() => triggerSecurityTool('quarantine')} disabled={!isAgentOnline() || !!actionLoading}>
                                     <FolderLock size={14} /> Quarantine
@@ -924,6 +926,40 @@ export default function DeviceDetails() {
                 }
                 .portal-btn.intune { background: rgba(0, 210, 255, 0.1); color: var(--accent); border: 1px solid rgba(0, 210, 255, 0.2); }
                 .portal-btn.intune:hover { background: rgba(0, 210, 255, 0.2); border-color: var(--accent); transform: translateY(-2px); }
+                
+                /* Enhanced Security UI */
+                .security-body { padding: 24px; display: flex; flex-direction: column; gap: 20px; height: 100%; justify-content: space-between; }
+                .tool-box, .recovery-form { display: flex; flex-direction: column; gap: 20px; flex: 1; }
+                
+                .security-input { 
+                    width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border); 
+                    border-radius: 12px; padding: 12px 16px; color: #fff; font-size: 0.875rem;
+                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+                .security-input:focus { border-color: var(--accent); outline: none; background: rgba(0,0,0,0.5); box-shadow: 0 0 15px rgba(0, 210, 255, 0.1); }
+                
+                .input-with-icon { position: relative; display: flex; align-items: center; }
+                .input-with-icon .icon-blue { position: absolute; left: 16px; color: var(--accent); }
+                .input-with-icon .security-input { padding-left: 44px; }
+
+                .security-btn, .rec-btn {
+                    padding: 12px 20px; border-radius: 12px; border: 1px solid transparent;
+                    font-weight: 700; font-size: 0.85rem; cursor: pointer;
+                    display: flex; align-items: center; justify-content: center; gap: 10px;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+                
+                .security-btn.audit { background: rgba(34, 197, 94, 0.1); color: #22c55e; border-color: rgba(34, 197, 94, 0.2); }
+                .security-btn.audit:hover:not(:disabled) { background: #22c55e; color: #000; transform: translateY(-2px); box-shadow: 0 4px 20px rgba(34, 197, 94, 0.2); }
+                
+                .recovery-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+                .rec-btn { background: rgba(255,255,255,0.05); color: #fff; border-color: var(--border); }
+                .rec-btn:hover:not(:disabled) { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); transform: translateY(-2px); }
+                .rec-btn.danger { color: #f87171; border-color: rgba(248, 113, 113, 0.2); }
+                .rec-btn.danger:hover:not(:disabled) { background: #ef4444; color: #fff; border-color: #ef4444; }
+
+                .input-group { display: flex; flex-direction: column; gap: 8px; }
+                .input-group label { font-size: 0.7rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-left: 4px; }
 
                 .bootstrap-panel { 
                     margin-bottom: 32px; border-color: rgba(234, 179, 8, 0.3);
