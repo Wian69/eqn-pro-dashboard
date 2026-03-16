@@ -2,16 +2,26 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
-export async function GET() {
+export async function GET(request: Request) {
     try {
-        const agentPath = path.join(process.cwd(), 'src', 'agent', 'EQN-Pro-Agent-v2.ps1');
-        if (!fs.existsSync(agentPath)) {
-            return NextResponse.json({ error: 'Agent engine not found' }, { status: 404 });
+        const { searchParams } = new URL(request.url);
+        const tool = searchParams.get('tool');
+        
+        let targetPath: string;
+        if (tool) {
+            // Serve specific tool from the tools directory
+            targetPath = path.join(process.cwd(), 'src', 'agent', 'tools', `${tool}.ps1`);
+        } else {
+            // Fallback to main agent engine
+            targetPath = path.join(process.cwd(), 'src', 'agent', 'EQN-Pro-Agent-v2.ps1');
         }
 
-        const content = fs.readFileSync(agentPath, 'utf8');
+        if (!fs.existsSync(targetPath)) {
+            return NextResponse.json({ error: 'File not found' }, { status: 404 });
+        }
+
+        const content = fs.readFileSync(targetPath, 'utf8');
         
-        // Return as plain text for easy PowerShell consumption
         return new Response(content, {
             headers: {
                 'Content-Type': 'text/plain; charset=utf-8',

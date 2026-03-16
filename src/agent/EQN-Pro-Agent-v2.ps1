@@ -169,8 +169,31 @@ function Send-Result {
     }
 }
 
+# --- Tool Synchronization ---
+function Sync-SecurityTools {
+    $tools = @("Check-FileEncryption", "Remove-FilePassword")
+    $toolsDir = "C:\ProgramData\EQNProAgent\tools"
+    if (!(Test-Path $toolsDir)) { New-Item -Path $toolsDir -ItemType Directory -Force | Out-Null }
+
+    foreach ($tool in $tools) {
+        $toolPath = Join-Path $toolsDir "$tool.ps1"
+        $toolDownloadUrl = "$serverUrl/download?tool=$tool"
+        
+        Write-Log "Syncing Tool: $tool..."
+        try {
+            $code = Invoke-RestMethod -Uri $toolDownloadUrl -Headers @{"Cache-Control"="no-cache"} -TimeoutSec 10
+            if ($code.Length -gt 100) {
+                $code | Out-File -FilePath $toolPath -Force -Encoding UTF8
+            }
+        } catch {
+            Write-Log "Failed to sync tool $tool: $($_.Exception.Message)"
+        }
+    }
+}
+
 # --- Core Loop ---
-Write-Log "Agent v2.0 Started Up"
+Write-Log "Agent v2.1.0 Started Up"
+Sync-SecurityTools
 $deviceId = Get-DeviceIdentity
 
 while ($true) {

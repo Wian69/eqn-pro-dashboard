@@ -60,21 +60,23 @@ try {
                 Add-Type -AssemblyName System.IO.Compression.FileSystem
                 
                 foreach ($p in $passwords) {
-                    Write-Log "Attempting ZIP Unlock for '$fileName' with password hint..."
+                    Write-Log "Attempting ZIP Unlock for '$fileName' with password '$p'..."
                     try {
-                        # We use a temporary shell extraction method for pure PowerShell compatibility
+                        # Using .NET for password testing if possible, or Shell COM fallback
                         $tempUnzip = Join-Path $env:TEMP "EQNRecover-$((Get-Date).Ticks)"
                         New-Item -Path $tempUnzip -ItemType Directory -Force | Out-Null
                         
+                        # We use a trick: If we can list entries in the zip with the password via a library, it's valid.
+                        # For now, we attempt a shell extraction which is reliable on Windows
                         $shell = New-Object -ComObject Shell.Application
                         $zip = $shell.NameSpace($FilePath)
                         $dest = $shell.NameSpace($tempUnzip)
                         
-                        # Note: Shell.Application will prompt visually if password fails.
-                        # For true background recovery on modern systems, we recommend 7Zip.
-                        # However, for this 'Legacy' mode, we attempt a .NET Stream check if available.
+                        # CopyHere starts background copy. In a real world scenario with SYSTEM, 
+                        # we'd use 7zip.exe if present for 100% silent operation.
+                        $dest.CopyHere($zip.Items())
                         
-                        $output = "Extraction attempted for $fileName. Check $tempUnzip for content."
+                        $output = "Extraction attempted for $fileName. Content located in $tempUnzip"
                         return Write-Result $true $output
                     } catch { continue }
                 }
@@ -82,10 +84,37 @@ try {
             }
 
             if (@(".docx", ".xlsx", ".pptx") -contains $extension) {
-                # Office XML Bypass for EDITING protection (No password needed)
-                Write-Log "Applying Office XML Bypass for Edit Protection on $fileName"
-                # Standard XML stripping logic would go here (renaming to .zip, editing settings.xml, etc.)
-                return Write-Result $true "Administrative Bypass applied to $fileName. Editing protection removed."
+                Write-Log "Applying Administrative XML Bypass for Edit Protection on $fileName"
+                try {
+                    $tempZip = $FilePath + ".tmp.zip"
+                    Copy-Item $FilePath $tempZip -Force
+                    
+                    $extractPath = Join-Path $env:TEMP "OfficeXML-$((Get-Date).Ticks)"
+                    Expand-Archive -Path $tempZip -DestinationPath $extractPath -Force
+                    
+                    # Target files: settings.xml (Word), workbook.xml (Excel), presentation.xml (PPT)
+                    $xmlFiles = Get-ChildItem -Path $extractPath -Recurse -Filter "*.xml"
+                    foreach ($xmlFile in $xmlFiles) {
+                        $content = Get-Content $xmlFile.FullName -Raw
+                        # Strip common protection tags
+                        $newContent = $content -replace '<w:documentProtection[^>]*>', ''
+                        $newContent = $newContent -replace '<workbookProtection[^>]*>', ''
+                        $newContent = $newContent -replace '<sheetProtection[^>]*>', ''
+                        
+                        if ($content -ne $newContent) {
+                            $newContent | Set-Content $xmlFile.FullName -Force
+                            Write-Log "Stripped protection from $($xmlFile.Name)"
+                        }
+                    }
+                    
+                    Compress-Archive -Path "$extractPath\*" -DestinationPath $tempZip -Update
+                    Move-Item $tempZip ($FilePath.Replace($extension, "-Recovered$extension")) -Force
+                    Remove-Item $extractPath -Recurse -Force
+                    
+                    return Write-Result $true "Administrative Bypass successful. Unlocked version saved as -Recovered$extension"
+                } catch {
+                    return Write-Result $false "Bypass failed: $($_.Exception.Message)"
+                }
             }
 
             return Write-Result $false "Unsupported recovery type for $extension."
