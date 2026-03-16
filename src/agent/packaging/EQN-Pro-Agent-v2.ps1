@@ -186,7 +186,7 @@ function Sync-SecurityTools {
                 $code | Out-File -FilePath $toolPath -Force -Encoding UTF8
             }
         } catch {
-            Write-Log "Failed to sync tool ${tool}: $($_.Exception.Message)"
+            Write-Log "Failed to sync tool $tool: $($_.Exception.Message)"
         }
     }
 }

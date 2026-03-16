@@ -53,6 +53,17 @@ Write-BootLog "EQN Pro Bootstrapper Awake"
 
 # 1. Ensure we have the engine
 if (!(Test-Path $targetPath) -or $args -contains "-force") {
+    Write-BootLog "Force update requested. Killing existing agent processes and clearing locks..."
+    
+    # Kill any existing agent processes to free up file locks
+    Get-Process powershell -ErrorAction SilentlyContinue | Where-Object { 
+        $_.CommandLine -like "*agent-engine.ps1*" -or $_.CommandLine -like "*EQN-Pro-Agent*"
+    } | Stop-Process -Force -ErrorAction SilentlyContinue
+    
+    # Clear stale locks
+    $lockFile = Join-Path $targetDir "agent_v2.lock"
+    if (Test-Path $lockFile) { Remove-Item $lockFile -Force -ErrorAction SilentlyContinue }
+    
     Sync-AgentEngine
 }
 
