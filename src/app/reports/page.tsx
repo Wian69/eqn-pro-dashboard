@@ -29,6 +29,15 @@ export default function Reports() {
                     <button>Schedule Report</button>
                 </div>
                 <div className="glass-panel" style={{ padding: '24px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderBottom: '1px solid var(--border)' }}>
+                        <div>
+                            <div style={{ fontWeight: '600' }}>CFO Billing & Licensing Report</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Type: CSV • Includes all MS products and Azure costs</div>
+                        </div>
+                        <a href="/reports/CFO_Billing_Report_2026-06.csv" download>
+                            <button style={{ background: 'var(--glass)', border: '1px solid var(--border)', padding: '8px 16px', cursor: 'pointer' }}>Download</button>
+                        </a>
+                    </div>
                     {[
                         { name: 'Monthly Compliance Audit', type: 'PDF', generated: 'Mar 01, 2026' },
                         { name: 'Device Inventory Export', type: 'CSV', generated: 'Yesterday' },
