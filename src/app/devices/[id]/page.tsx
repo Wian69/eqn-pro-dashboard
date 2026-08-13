@@ -363,6 +363,9 @@ export default function DeviceDetails() {
                     <button className="mgmt-btn danger" disabled={!!actionLoading} onClick={() => handleAction('rebootNow')}>
                         <Power size={18} /> {actionLoading === 'rebootNow' ? '' : 'Restart'}
                     </button>
+                    <button className="mgmt-btn danger" disabled={!!actionLoading} onClick={() => { if(confirm('Are you sure you want to perform a Fresh Start? This will wipe the device.')) handleAction('freshStart'); }}>
+                        <RefreshCw size={18} className={actionLoading === 'freshStart' ? 'animate-spin' : ''} /> {actionLoading === 'freshStart' ? '' : 'Fresh Start'}
+                    </button>
                     <button className="mgmt-btn accent" disabled={!!actionLoading} onClick={() => handleAction('syncDevice')}>
                         <RotateCw size={18} className={actionLoading === 'syncDevice' ? 'animate-spin' : ''} /> {actionLoading === 'syncDevice' ? '' : 'Sync'}
                     </button>

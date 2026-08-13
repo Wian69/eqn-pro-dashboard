@@ -77,6 +77,9 @@ export async function POST(
             case 'setDeviceName':
                 await client.api(`${endpoint}/setDeviceName`).post({ deviceName: newName });
                 break;
+            case 'freshStart':
+                await client.api(`${endpoint}/cleanWindowsDevice`).post({ keepUserData: false });
+                break;
             default:
                 return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
         }
